@@ -34,6 +34,10 @@
 			likes: 145
 		}
 	];
+
+	function formatTitle(title) {
+		return title.toLowerCase().replace(/\s+/g, '-');
+	}
 </script>
 
 <section class="trends">
@@ -48,7 +52,9 @@
 				<div class="item-content">
 					<Profile handle={item.author} size={32} />
 					<div class="item-info">
-						<a href={item.id}><h1><Pie /><span>{item.title}</span></h1></a>
+						<a href={`${item.author}/${formatTitle(item.title)}`}
+							><h1><Pie /><span>{item.title}</span></h1></a
+						>
 						<div class="author-info">
 							<h2>@{item.author}</h2>
 							<h3>
@@ -68,26 +74,6 @@
 </section>
 
 <style>
-	:global(html, body) {
-		background: hsl(0, 0%, 10%);
-		margin: 0;
-	}
-	:global(*) {
-		box-sizing: border-box;
-		font-family:
-			system-ui,
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			Roboto,
-			sans-serif;
-	}
-
-	a {
-		color: inherit;
-		text-decoration: none;
-	}
-
 	button {
 		font-size: 14px;
 		font-weight: 500;
@@ -108,7 +94,7 @@
 	.trends {
 		max-width: 1024px;
 		margin: 0 auto;
-		padding: 30px 20px;
+		padding: 30px 20px 20px 20px;
 	}
 
 	.trend-button {
@@ -118,6 +104,7 @@
 		margin-bottom: 10px;
 		font-weight: 400;
 		transition: all 0.2s ease;
+		font-size: 12px;
 	}
 
 	.trend-button:hover {
@@ -150,7 +137,6 @@
 		border: 1px solid hsl(0, 0%, 20%);
 		height: 100px;
 		padding: 20px;
-		transition: border-color 0.2s ease;
 		margin-bottom: -1px;
 	}
 
