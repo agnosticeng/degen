@@ -1,10 +1,11 @@
 <script>
 	import Search from '$lib/cmpnt/svg/search.svelte';
+	import Logo from '$lib/cmpnt/svg/logo.svelte';
 </script>
 
 <section class="app">
 	<header>
-		<a href="/"><span><h1>degen</h1></span></a>
+		<a href="/"><Logo /></a>
 		<span><button class="sign-in">Sign in</button><Search size={20} /></span>
 	</header>
 	<slot></slot>
