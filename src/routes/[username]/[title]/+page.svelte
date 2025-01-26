@@ -38,7 +38,7 @@ LIMIT 168;`;
 
 <section class="dv">
 	<div class="chart">
-		<Chart data={data.chart} />
+		<Chart />
 	</div>
 	<div class="query-container">
 		<div class="line-numbers">

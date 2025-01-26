@@ -48,12 +48,6 @@
 		height: 48px;
 	}
 
-	header h1 {
-		font-weight: 1000;
-		font-size: 18px;
-		margin: 0;
-	}
-
 	button {
 		font-size: 14px;
 		font-weight: 500;

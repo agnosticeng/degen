@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
@@ -35,7 +35,7 @@
 		}
 	];
 
-	function formatTitle(title) {
+	function formatTitle(title: string) {
 		return title.toLowerCase().replace(/\s+/g, '-');
 	}
 </script>
