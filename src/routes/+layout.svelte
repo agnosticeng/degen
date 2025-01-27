@@ -13,19 +13,17 @@
 	let errorMessage = $state<string>('');
 </script>
 
-<section class="app">
-	<header>
-		<a href="/"><Logo /></a>
-		<span>
-			<button class="new" onclick={() => (openNewNotebook = true)}>
-				<PlusCircle size="16" /> New
-			</button>
-			<button class="sign-in">Sign in</button>
-			<Search size={20} />
-		</span>
-	</header>
-	{@render children()}
-</section>
+<header>
+	<a href="/"><Logo /></a>
+	<span>
+		<button class="new" onclick={() => (openNewNotebook = true)}>
+			<PlusCircle size="16" /> New
+		</button>
+		<button class="sign-in">Sign in</button>
+		<Search size={20} />
+	</span>
+</header>
+{@render children()}
 
 {#if openNewNotebook}
 	<Modal onclose={() => (openNewNotebook = false)} bind:this={newNotebookModal}>
@@ -73,8 +71,10 @@
 <style>
 	:global(html, body) {
 		background: hsl(0, 0%, 5%);
+		color: hsl(0, 0%, 86%);
 		margin: 0;
 	}
+
 	:global(*) {
 		box-sizing: border-box;
 		font-family:
@@ -89,11 +89,6 @@
 	:global(a) {
 		color: inherit;
 		text-decoration: none;
-	}
-
-	.app {
-		color: hsl(0, 0%, 86%);
-		width: 100%;
 	}
 
 	header {
@@ -151,7 +146,7 @@
 	form {
 		padding: 2rem;
 		background-color: hsl(0, 0%, 7%);
-		color: white;
+		color: hsl(0, 0%, 86%);
 	}
 
 	form label {

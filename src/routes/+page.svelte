@@ -2,10 +2,10 @@
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
-	import type { PageData } from './$types';
+	import type { PageProps } from './$types';
 
 	const trends = ['DeFi', 'Stablecoin', 'Base', 'Polymarket'];
-	let { data }: { data: PageData } = $props();
+	let { data }: PageProps = $props();
 </script>
 
 <section class="trends">

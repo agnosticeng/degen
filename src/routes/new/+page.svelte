@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { autoresize } from '$lib/actions/autoresize.svelte';
-	import DOMPurify from 'dompurify';
+	import DOMPurify from 'isomorphic-dompurify';
 	import { Marked } from 'marked';
 	import { untrack } from 'svelte';
 	import type { Block } from './types';
