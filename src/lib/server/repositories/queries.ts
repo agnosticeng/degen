@@ -7,6 +7,8 @@ export interface Query {
 	id: number;
 	sql: string;
 	notebookId: Notebook['id'] | null;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export interface QueryRepository {
@@ -21,29 +23,25 @@ class DrizzleQueryRepository implements QueryRepository {
 	constructor(private db: DrizzleDatabase) {}
 
 	async list(notebookId: Notebook['id']): Promise<Query[]> {
-		const rows = await this.db.select().from(queries).where(eq(queries.notebook_id, notebookId));
-
-		return rows.map((r) => this.#transform(r));
+		return await this.db.select().from(queries).where(eq(queries.notebookId, notebookId));
 	}
 
 	async create(data: Omit<Query, 'id'>): Promise<Query> {
 		const [row] = await this.db
 			.insert(queries)
-			.values({ sql: data.sql, notebook_id: data.notebookId })
+			.values({ sql: data.sql, notebookId: data.notebookId })
 			.returning();
 
 		if (!row) throw new Error('DrizzleQueryRepository: Something went wrong (create)');
 
-		return this.#transform(row);
+		return row;
 	}
 
 	async batchCreate(data: Omit<Query, 'id'>[]): Promise<Query[]> {
-		const rows = await this.db
+		return await this.db
 			.insert(queries)
-			.values(data.map((d) => ({ sql: d.sql, notebook_id: d.notebookId })))
+			.values(data.map((d) => ({ sql: d.sql, notebookId: d.notebookId })))
 			.returning();
-
-		return rows.map((r) => this.#transform(r));
 	}
 
 	async delete(id: Query['id']): Promise<void> {
@@ -51,11 +49,7 @@ class DrizzleQueryRepository implements QueryRepository {
 	}
 
 	async deleteNotebookQueries(notebookId: Notebook['id']): Promise<void> {
-		await this.db.delete(queries).where(eq(queries.notebook_id, notebookId));
-	}
-
-	#transform(row: typeof queries.$inferSelect): Query {
-		return { ...row, notebookId: row.notebook_id };
+		await this.db.delete(queries).where(eq(queries.notebookId, notebookId));
 	}
 }
 

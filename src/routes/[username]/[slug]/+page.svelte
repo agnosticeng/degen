@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Chart from '$lib/cmpnt/dv/chart.svelte';
-	import type { PageData } from './$types';
+	import type { PageProps } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data }: PageProps = $props();
 
 	let query = `WITH pool_info AS (
 	SELECT
@@ -26,7 +26,7 @@ LIMIT 168;`;
 </script>
 
 <section class="info">
-	<h1>@{data.query.author}/{data.query.title}</h1>
+	<h1>@{data.notebook.author}/{data.notebook.name}</h1>
 
 	<div class="desc">
 		This query analyzes the distribution of ERC-20 token transfers across different time periods,
