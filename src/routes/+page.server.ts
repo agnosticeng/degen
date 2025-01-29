@@ -18,6 +18,6 @@ export const actions = {
 			{ id: 1, providerId: '', username: 'yannamsellem' }
 		);
 
-		redirect(303, `/${notebook.author}/${notebook.slug}/edit`);
+		redirect(303, `/${notebook.author}/${notebook.slug}`);
 	}
 } satisfies Actions;

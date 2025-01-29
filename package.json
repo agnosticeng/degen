@@ -55,6 +55,7 @@
 		"drizzle-orm": "^0.38.4",
 		"isomorphic-dompurify": "^2.20.0",
 		"marked": "^15.0.6",
+		"p-debounce": "^4.0.0",
 		"shiki": "^2.1.0"
 	}
 }

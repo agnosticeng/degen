@@ -20,22 +20,20 @@
 	}
 </script>
 
-<article>
-	<div class="output">
-		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-		{@html html}
-	</div>
-	<div class="markdown">
-		<button onclick={handlePlay}><Play size="16" /></button>
-		<Editor
-			bind:value
-			onRun={() => {
-				handlePlay();
-				return true;
-			}}
-		/>
-	</div>
-</article>
+<div class="output">
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+	{@html html}
+</div>
+<div class="markdown">
+	<button onclick={handlePlay}><Play size="16" /></button>
+	<Editor
+		bind:value
+		onRun={() => {
+			handlePlay();
+			return true;
+		}}
+	/>
+</div>
 
 <style>
 	.output {

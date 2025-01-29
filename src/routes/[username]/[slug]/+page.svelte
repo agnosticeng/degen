@@ -1,127 +1,178 @@
 <script lang="ts">
-	import Chart from '$lib/cmpnt/dv/chart.svelte';
+	import Plus from '$lib/cmpnt/svg/plus.svelte';
+	import Trash from '$lib/cmpnt/svg/trash.svelte';
+	import type { Notebook } from '$lib/server/repositories/notebooks';
+	import debounce from 'p-debounce';
 	import type { PageProps } from './$types';
+	import Block from './Block.svelte';
 
 	let { data }: PageProps = $props();
+	let blocks = $state(data.notebook.contents);
 
-	let query = `WITH pool_info AS (
-	SELECT
-			block_timestamp,
-			token0_amount,
-			token1_amount,
-			sqrt_price_x96,
-			liquidity
-	FROM uniswap_v3.Pool_evt_Swap
-	WHERE pool_address = '0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8'
-	AND block_timestamp >= NOW() - INTERVAL '7 days'
-)
-SELECT
-			DATE_TRUNC('hour', block_timestamp) as time,
-			AVG((token1_amount::decimal / token0_amount::decimal)) as eth_price
-FROM pool_info
-WHERE token0_amount != 0
-GROUP BY 1
-ORDER BY 1 DESC
-LIMIT 168;`;
-</script>
-
-<section class="info">
-	<h1>@{data.notebook.author}/{data.notebook.name}</h1>
-
-	<div class="desc">
-		This query analyzes the distribution of ERC-20 token transfers across different time periods,
-		focusing on wallets with high transaction volumes. It helps identify potential whale activity
-		and investigates patterns in token holder behavior across major DeFi protocols. Share your
-		insights with the community!
-	</div>
-</section>
-
-<section class="dv">
-	<div class="chart">
-		<Chart />
-	</div>
-	<div class="query-container">
-		<div class="line-numbers">
-			{#each Array(query.split('\n').length) as _, i}
-				<div class="line-number">{i + 1}</div>
-			{/each}
-		</div>
-		<pre class="query">{query}</pre>
-	</div>
-</section>
-
-<style>
-	h1 {
-		font-size: 24px;
-		margin: 0;
-		margin-bottom: 20px;
-		font-weight: 400;
-	}
-
-	.info {
-		max-width: 1024px;
-		padding: 30px 20px;
-		margin: auto;
-	}
-
-	.desc {
-		font-weight: 300;
-		color: hsl(0, 0%, 80%);
-		font-size: 15px;
-	}
-
-	.dv {
-		max-width: 1024px;
-		margin: auto;
-		padding: 30px 20px;
-	}
-
-	.chart {
-		width: 100%;
-		height: 500px;
-		border: 1px solid hsl(0, 0%, 20%);
-		border-top-left-radius: 6px;
-		border-top-right-radius: 6px;
-		overflow: hidden;
-		background: hsl(0, 0%, 6%);
-	}
-
-	@media (max-width: 768px) {
-		.chart,
-		.query-container {
-			height: 250px;
+	async function save() {
+		const r = await fetch(`/api/notebooks/${data.notebook.id}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ contents: $state.snapshot(blocks) })
+		});
+		if (r.ok) {
+			const notebook: Notebook = await r.json();
+			blocks = notebook.contents;
 		}
 	}
 
-	.query-container {
-		margin-top: -1px;
-		display: flex;
-		border: 1px solid hsl(0, 0%, 20%);
-		border-bottom-left-radius: 6px;
-		border-bottom-right-radius: 6px;
-		overflow: hidden;
+	const debouncedSave = debounce(save, 2_000);
+	$effect(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		blocks;
+		debouncedSave();
+	});
+
+	function handleKeyDown(e: KeyboardEvent) {
+		const isMac = navigator.userAgent.includes('Macintosh');
+		const mod = isMac ? e.metaKey : e.ctrlKey;
+
+		if (mod && e.key === 's') {
+			e.preventDefault();
+			save();
+		}
+	}
+</script>
+
+<svelte:window onkeydown={handleKeyDown} />
+
+<section>
+	<header>
+		<button onclick={save}>Save</button>
+	</header>
+	{#each blocks as _block, i}
+		<article>
+			{#if blocks.length > 1}
+				<button class="trash" onclick={() => blocks.splice(i, 1)}><Trash size="14" /></button>
+			{/if}
+			<Block bind:value={blocks[i]} />
+		</article>
+		<button
+			class="add-block"
+			onclick={() => {
+				blocks.splice(i + 1, 0, '');
+			}}
+		>
+			<Plus size="14" />
+		</button>
+	{/each}
+</section>
+
+<style>
+	section {
+		max-width: 1024px;
+		margin: 0 auto;
+		padding: 20px 24px;
 	}
 
-	.line-numbers {
-		padding: 10px 10px 10px 0;
-		user-select: none;
-		font-family: monospace;
-	}
-
-	.line-number {
-		text-align: right;
-		padding: 0 5px;
-		font-family: monospace;
-		color: hsl(0, 0%, 30%);
-	}
-
-	.query {
-		margin: 0;
-		padding: 10px;
+	header {
 		width: 100%;
-		height: 500px;
-		font-family: monospace;
+		display: flex;
+		justify-content: end;
+	}
+
+	header button {
+		font-size: 14px;
+		font-weight: 500;
 		border: none;
-		color: hsl(0, 0%, 60%);
+		cursor: pointer;
+		padding: 8px 16px;
+		color: hsl(0, 0%, 80%);
+		border-radius: 5px;
+		background: hsl(0, 0%, 12%);
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+
+		&:hover {
+			background: hsl(0, 0%, 15%);
+			color: hsl(0, 0%, 90%);
+		}
+	}
+
+	article {
+		position: relative;
+
+		&::before {
+			content: '';
+			position: absolute;
+
+			width: 20px;
+			right: calc(100% + 4px);
+			top: 0;
+			bottom: 0;
+			background-color: hsl(0, 0%, 12%);
+		}
+
+		&:is(:hover, :focus-within)::before {
+			background-color: hsl(0, 0%, 14%);
+		}
+	}
+
+	button.trash {
+		padding: 0;
+		position: absolute;
+		top: 0;
+		right: 100%;
+		transform: translate(-50%, 50%);
+		color: hsl(0, 0%, 80%);
+
+		&:is(:hover):not(:disabled) {
+			color: hsl(0, 0%, 90%);
+		}
+	}
+
+	button {
+		appearance: none;
+		outline: none;
+		border: none;
+		background-color: transparent;
+		color: currentColor;
+		font-size: 10px;
+		padding: 0;
+
+		&:is(:hover, :focus-within):not(:disabled) {
+			cursor: pointer;
+		}
+	}
+
+	.add-block {
+		position: relative;
+		display: block;
+		width: 100%;
+		text-align: start;
+		margin: 5px 0;
+		padding: 8px 0;
+		color: hsl(0, 0%, 80%);
+		transition: color 100ms ease-out;
+
+		&:is(:hover):not(:disabled) {
+			color: hsl(0, 0%, 90%);
+
+			&::before {
+				background-color: currentColor;
+			}
+		}
+
+		& > :global(svg) {
+			position: absolute;
+			right: 100%;
+			top: 50%;
+			transform: translate(-50%, -50%);
+		}
+
+		&::before {
+			content: '';
+			display: block;
+			width: 100%;
+			height: 2px;
+			background-color: transparent;
+		}
 	}
 </style>
