@@ -6,7 +6,7 @@ export async function transform(
 	{
 		walkTokens,
 		...renderer
-	}: Partial<Renderer> & { walkTokens?: MarkedExtension['walkTokens']; async?: boolean } = {}
+	}: Partial<Renderer> & { walkTokens?: MarkedExtension['walkTokens'] } = {}
 ) {
 	const marked = new Marked({
 		async: true,
@@ -15,7 +15,10 @@ export async function transform(
 		gfm: true,
 		hooks: {
 			postprocess(html) {
-				return DOMPurify.sanitize(html);
+				return DOMPurify.sanitize(html, {
+					ADD_TAGS: ['code-block'],
+					ADD_ATTR: ['code', 'language']
+				});
 			}
 		}
 	});

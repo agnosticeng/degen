@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
 import { queries } from '../db/schema';
 import type { Notebook } from './notebooks';
@@ -13,10 +13,12 @@ export interface Query {
 
 export interface QueryRepository {
 	list(notebookId: Notebook['id']): Promise<Query[]>;
-	create(data: Omit<Query, 'id'>): Promise<Query>;
-	batchCreate(data: Omit<Query, 'id'>[]): Promise<Query[]>;
+	create(data: Omit<Query, 'id' | 'createdAt' | 'updatedAt'>): Promise<Query>;
+	batchCreate(data: Omit<Query, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<Query[]>;
+	update(data: Omit<Query, 'notebookId' | 'createdAt' | 'updatedAt'>): Promise<Query>;
+	batchUpdate(data: Omit<Query, 'notebookId' | 'createdAt' | 'updatedAt'>[]): Promise<Query[]>;
 	delete(id: Query['id']): Promise<void>;
-	deleteNotebookQueries(notebookId: Notebook['id']): Promise<void>;
+	batchDelete(ids: Query['id'][]): Promise<void>;
 }
 
 class DrizzleQueryRepository implements QueryRepository {
@@ -26,7 +28,7 @@ class DrizzleQueryRepository implements QueryRepository {
 		return await this.db.select().from(queries).where(eq(queries.notebookId, notebookId));
 	}
 
-	async create(data: Omit<Query, 'id'>): Promise<Query> {
+	async create(data: Omit<Query, 'id' | 'createdAt' | 'updatedAt'>): Promise<Query> {
 		const [row] = await this.db
 			.insert(queries)
 			.values({ sql: data.sql, notebookId: data.notebookId })
@@ -37,19 +39,58 @@ class DrizzleQueryRepository implements QueryRepository {
 		return row;
 	}
 
-	async batchCreate(data: Omit<Query, 'id'>[]): Promise<Query[]> {
-		return await this.db
-			.insert(queries)
-			.values(data.map((d) => ({ sql: d.sql, notebookId: d.notebookId })))
+	async batchCreate(data: Omit<Query, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<Query[]> {
+		if (data.length)
+			return await this.db
+				.insert(queries)
+				.values(data.map((d) => ({ sql: d.sql, notebookId: d.notebookId })))
+				.returning();
+
+		return [];
+	}
+
+	async update({ id, sql }: Omit<Query, 'notebookId' | 'createdAt' | 'updatedAt'>): Promise<Query> {
+		const [row] = await this.db
+			.update(queries)
+			.set({ sql, updatedAt: new Date() })
+			.where(eq(queries.id, id))
 			.returning();
+
+		return row;
+	}
+
+	async batchUpdate(
+		data: Omit<Query, 'notebookId' | 'createdAt' | 'updatedAt'>[]
+	): Promise<Query[]> {
+		if (data.length < 1) return [];
+
+		const [first, ...rest] = data;
+
+		const now = new Date();
+		const response = await this.db.batch([
+			this.db
+				.update(queries)
+				.set({ sql: first.sql, updatedAt: now })
+				.where(eq(queries.id, first.id))
+				.returning(),
+			...rest.map((q) =>
+				this.db
+					.update(queries)
+					.set({ sql: q.sql, updatedAt: now })
+					.where(eq(queries.id, q.id))
+					.returning()
+			)
+		]);
+
+		return response.flat();
 	}
 
 	async delete(id: Query['id']): Promise<void> {
 		await this.db.delete(queries).where(eq(queries.id, id));
 	}
 
-	async deleteNotebookQueries(notebookId: Notebook['id']): Promise<void> {
-		await this.db.delete(queries).where(eq(queries.notebookId, notebookId));
+	async batchDelete(ids: Query['id'][]): Promise<void> {
+		if (ids.length) await this.db.delete(queries).where(inArray(queries.id, ids));
 	}
 }
 

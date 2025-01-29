@@ -14,6 +14,12 @@ export async function renderMarkdown(body: string) {
 			if (token.type === 'code') {
 				const source = adjust_tab_indentation(token.text, token.lang ?? '');
 
+				if (token.lang === 'sql') {
+					const html = `<code-block code="${encodeURIComponent(token.text)}" language="${token.lang || 'plaintext'}"></code-block>`;
+					codes.set(token.text, html);
+					return;
+				}
+
 				let html = '<div class="code-block">';
 
 				html += await codeToHtml(source, { lang: token.lang, theme });

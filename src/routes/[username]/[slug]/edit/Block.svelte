@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '$lib/cmpnt/CodeBlock.svelte';
 	import Editor from '$lib/cmpnt/MarkdownEditor/Editor.svelte';
 	import Play from '$lib/cmpnt/svg/play.svelte';
 	import { renderMarkdown } from '$lib/markdown';

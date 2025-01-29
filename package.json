@@ -41,7 +41,7 @@
 		"vitest": "^3.0.4"
 	},
 	"dependencies": {
-		"@agnosticeng/editor": "^0.0.4",
+		"@agnosticeng/editor": "^0.0.5",
 		"@codemirror/autocomplete": "^6.18.4",
 		"@codemirror/commands": "^6.8.0",
 		"@codemirror/lang-markdown": "^6.3.2",
