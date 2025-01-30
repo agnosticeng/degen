@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '@agnosticeng/editor/style.css';
-	import { EditorState } from '@codemirror/state';
+	import { Compartment, EditorState } from '@codemirror/state';
 	import { EditorView, keymap } from '@codemirror/view';
 	import { untrack } from 'svelte';
 	import { extensions } from './extensions';
@@ -8,12 +8,14 @@
 	interface Props {
 		value?: string;
 		onRun?: () => boolean;
+		readonly?: boolean;
 	}
 
-	let { value = $bindable(''), onRun = () => true }: Props = $props();
+	let { value = $bindable(''), onRun = () => true, readonly = false }: Props = $props();
 
 	let container: HTMLDivElement;
 	let view: EditorView;
+	const readonlyCompartment = new Compartment();
 
 	$effect(() => {
 		if (!container) return;
@@ -26,11 +28,16 @@
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) value = update.state.doc.toString();
 				}),
+				readonlyCompartment.of(
+					untrack(() => readonly)
+						? [EditorState.readOnly.of(readonly), EditorView.editable.of(!readonly)]
+						: []
+				),
 				keymap.of([
 					{
 						key: 'Mod-Enter',
 						preventDefault: true,
-						run: (view) => onRun()
+						run: () => onRun()
 					}
 				])
 			]
@@ -45,6 +52,14 @@
 		const existing = view?.state.doc.toString() ?? '';
 		if (value !== existing)
 			view?.dispatch({ changes: { from: 0, to: existing.length, insert: value } });
+	});
+
+	$effect(() => {
+		view?.dispatch({
+			effects: readonlyCompartment.reconfigure(
+				readonly ? [EditorState.readOnly.of(readonly), EditorView.editable.of(!readonly)] : []
+			)
+		});
 	});
 </script>
 

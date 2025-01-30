@@ -1,15 +1,19 @@
 <script lang="ts">
-	import Editor from '$lib/cmpnt/MarkdownEditor/Editor.svelte';
+	import { MarkdownEditor } from '$lib/cmpnt/MarkdownEditor';
 	import Play from '$lib/cmpnt/svg/play.svelte';
 	import { renderMarkdown } from '$lib/markdown';
 	import '$lib/markdown/styles/tokens.css';
+	import type { EditionBlock } from '$lib/server/repositories/blocks';
+	import { Editor } from '@agnosticeng/editor';
 	import { untrack } from 'svelte';
 
 	interface Props {
 		value: string;
+		type: EditionBlock['type'];
+		readonly?: boolean;
 	}
 
-	let { value = $bindable('') }: Props = $props();
+	let { value = $bindable(''), type, readonly }: Props = $props();
 
 	let html = $state('');
 	$effect.pre(() => void renderMarkdown(untrack(() => value)).then((v) => (html = v)));
@@ -19,20 +23,27 @@
 	}
 </script>
 
-<div class="output">
-	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-	{@html html}
-</div>
-<div class="markdown">
-	<button onclick={handlePlay}><Play size="16" /></button>
-	<Editor
-		bind:value
-		onRun={() => {
-			handlePlay();
-			return true;
-		}}
-	/>
-</div>
+{#if type === 'markdown'}
+	<div class="output">
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+		{@html html}
+	</div>
+	<div class="markdown">
+		{#if !readonly}
+			<button onclick={handlePlay}><Play size="16" /></button>
+		{/if}
+		<MarkdownEditor
+			readonly
+			bind:value
+			onRun={() => {
+				handlePlay();
+				return true;
+			}}
+		/>
+	</div>
+{:else if type === 'sql'}
+	<Editor bind:value />
+{/if}
 
 <style>
 	.output {

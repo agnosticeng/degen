@@ -1,10 +1,13 @@
 <script lang="ts">
-	import Plus from '$lib/cmpnt/svg/plus.svelte';
+	import Select from '$lib/cmpnt/Select.svelte';
+	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
+	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import debounce from 'p-debounce';
 	import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
+	import AddBlock from './AddBlock.svelte';
 	import Block from './Block.svelte';
 	import { updateBlocks } from './requests';
 
@@ -44,31 +47,60 @@
 		}
 	}
 
-	function handleAdd(index: number) {
-		const block: EditionBlock = { content: ``, type: 'markdown', pinned: false, position: 0 };
-		blocks.splice(index, 0, block);
+	function handleAdd(type: EditionBlock['type'], at: number) {
+		const block: EditionBlock = { content: ``, type, pinned: false, position: 0 };
+		blocks.splice(at, 0, block);
 	}
+
+	let selects = $state<ReturnType<typeof Select>[]>([]);
+	$effect(() => {
+		const filtered = selects.filter(Boolean);
+		if (filtered.length !== selects.length) selects = filtered;
+	});
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
 
 <section>
-	{#if data.canEdit}
-		<header>
+	<header>
+		{#if data.canEdit}
 			<button onclick={() => save($state.snapshot(blocks))}>Save</button>
-		</header>
-	{/if}
+		{/if}
+	</header>
 	{#each blocks as block, i (block)}
 		<article>
-			{#if blocks.length > 1 && data.canEdit}
-				<button class="trash" onclick={() => blocks.splice(i, 1)}><Trash size="14" /></button>
+			{#if data.canEdit}
+				<button class="more" onclick={(e) => selects.at(i)?.open(e.currentTarget)}>
+					<DotsThreeVertical size="14" />
+				</button>
+				<Select bind:this={selects[i]} placement="right-start">
+					<ul role="menu">
+						<li role="menuitem">
+							<button onclick={() => (block.pinned = !block.pinned)}>
+								<Pin size="14" />
+								{#if block.pinned}
+									Unpin
+								{:else}
+									Pin
+								{/if}
+							</button>
+						</li>
+						<li role="menuitem">
+							<button
+								class="danger"
+								disabled={blocks.length === 1}
+								onclick={() => blocks.splice(i, 1)}
+							>
+								<Trash size="14" /> Delete
+							</button>
+						</li>
+					</ul>
+				</Select>
 			{/if}
-			<Block bind:value={block.content} />
+			<Block bind:value={block.content} type={block.type} readonly={!data.canEdit} />
 		</article>
 		{#if data.canEdit}
-			<button class="add-block" onclick={() => handleAdd(i + 1)}>
-				<Plus size="14" />
-			</button>
+			<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
 		{/if}
 	{/each}
 </section>
@@ -125,7 +157,7 @@
 		}
 	}
 
-	button.trash {
+	button.more {
 		padding: 0;
 		position: absolute;
 		top: 0;
@@ -144,7 +176,6 @@
 		border: none;
 		background-color: transparent;
 		color: currentColor;
-		font-size: 10px;
 		padding: 0;
 
 		&:is(:hover, :focus-within):not(:disabled) {
@@ -152,37 +183,38 @@
 		}
 	}
 
-	.add-block {
-		position: relative;
-		display: block;
-		width: 100%;
-		text-align: start;
-		margin: 5px 0;
+	ul {
+		list-style: none;
+		background-color: hsl(0, 0%, 10%);
 		padding: 8px 0;
-		color: hsl(0, 0%, 80%);
-		transition: color 100ms ease-out;
+		margin: 0;
 
-		&:is(:hover):not(:disabled) {
-			color: hsl(0, 0%, 90%);
-
-			&::before {
-				background-color: currentColor;
-			}
-		}
-
-		& > :global(svg) {
-			position: absolute;
-			right: 100%;
-			top: 50%;
-			transform: translate(-50%, -50%);
-		}
-
-		&::before {
-			content: '';
+		& > li {
 			display: block;
-			width: 100%;
-			height: 2px;
-			background-color: transparent;
+			padding: 0;
+
+			& > button {
+				width: 100%;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 8px 16px;
+				color: hsl(0, 0%, 80%);
+
+				&:is(:hover, :focus-within):not(:disabled) {
+					color: hsl(0, 0%, 90%);
+					background-color: hsl(0, 0%, 15%);
+
+					&.danger {
+						color: hsl(0deg 61% 54%);
+						background-color: hsl(0, 34%, 12%);
+					}
+				}
+
+				&:is(:disabled) {
+					color: hsl(0, 0%, 65%);
+				}
+			}
 		}
 	}
 </style>
