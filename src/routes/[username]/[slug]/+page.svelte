@@ -1,31 +1,36 @@
 <script lang="ts">
 	import Plus from '$lib/cmpnt/svg/plus.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
-	import type { Notebook } from '$lib/server/repositories/notebooks';
+	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import debounce from 'p-debounce';
+	import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
 	import Block from './Block.svelte';
+	import { updateBlocks } from './requests';
 
 	let { data }: PageProps = $props();
-	let blocks = $state(data.notebook.contents);
-
-	async function save() {
-		const r = await fetch(`/api/notebooks/${data.notebook.id}`, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ contents: $state.snapshot(blocks) })
-		});
-		if (r.ok) {
-			const notebook: Notebook = await r.json();
-			blocks = notebook.contents;
+	let blocks = $state<EditionBlock[]>(data.notebook.blocks);
+	$effect.pre(() => {
+		if (untrack(() => blocks.length) === 0) {
+			blocks.push({
+				content: `# @${data.notebook.author.username}/${data.notebook.title}`,
+				type: 'markdown',
+				pinned: false,
+				position: 0
+			});
 		}
+	});
+
+	async function save(nextBlocks: EditionBlock[]) {
+		const positionned = nextBlocks.map((b, i) => ({ ...b, position: i }));
+		const updated = await updateBlocks(data.notebook.id, positionned);
+		if (updated) blocks = updated;
 	}
 
 	const debouncedSave = debounce(save, 2_000);
+	const automatic_save = false;
 	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		blocks;
-		debouncedSave();
+		if (data.canEdit && automatic_save) debouncedSave($state.snapshot(blocks));
 	});
 
 	function handleKeyDown(e: KeyboardEvent) {
@@ -33,33 +38,38 @@
 		const mod = isMac ? e.metaKey : e.ctrlKey;
 
 		if (mod && e.key === 's') {
+			if (!data.canEdit) return;
 			e.preventDefault();
-			save();
+			debouncedSave($state.snapshot(blocks));
 		}
+	}
+
+	function handleAdd(index: number) {
+		const block: EditionBlock = { content: ``, type: 'markdown', pinned: false, position: 0 };
+		blocks.splice(index, 0, block);
 	}
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
 
 <section>
-	<header>
-		<button onclick={save}>Save</button>
-	</header>
-	{#each blocks as _block, i}
+	{#if data.canEdit}
+		<header>
+			<button onclick={() => save($state.snapshot(blocks))}>Save</button>
+		</header>
+	{/if}
+	{#each blocks as block, i (block)}
 		<article>
-			{#if blocks.length > 1}
+			{#if blocks.length > 1 && data.canEdit}
 				<button class="trash" onclick={() => blocks.splice(i, 1)}><Trash size="14" /></button>
 			{/if}
-			<Block bind:value={blocks[i]} />
+			<Block bind:value={block.content} />
 		</article>
-		<button
-			class="add-block"
-			onclick={() => {
-				blocks.splice(i + 1, 0, '');
-			}}
-		>
-			<Plus size="14" />
-		</button>
+		{#if data.canEdit}
+			<button class="add-block" onclick={() => handleAdd(i + 1)}>
+				<Plus size="14" />
+			</button>
+		{/if}
 	{/each}
 </section>
 
@@ -107,11 +117,11 @@
 			right: calc(100% + 4px);
 			top: 0;
 			bottom: 0;
-			background-color: hsl(0, 0%, 12%);
+			background-color: transparent;
 		}
 
 		&:is(:hover, :focus-within)::before {
-			background-color: hsl(0, 0%, 14%);
+			background-color: hsl(0, 0%, 12%);
 		}
 	}
 

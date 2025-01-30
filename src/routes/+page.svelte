@@ -18,22 +18,20 @@
 		{#each data.notebooks as item}
 			<li>
 				<div class="item-content">
-					<Profile handle={item.author} size={32} />
+					<Profile handle={item.author.username} size={32} />
 					<div class="item-info">
-						<a href={`${item.author}/${item.slug}`}>
-							<h1><Pie /><span>{item.name}</span></h1>
+						<a href="/{item.author.username}/{item.slug}">
+							<h1><Pie /><span>{item.title}</span></h1>
 						</a>
 						<div class="author-info">
-							<h2>@{item.author}</h2>
-							<h3>
-								{item.createdAt.toDateString()}
-							</h3>
+							<h2>@{item.author.username}</h2>
+							<h3>{item.createdAt.toDateString()}</h3>
 						</div>
 					</div>
 				</div>
 
 				<div class="likes">
-					<span>10</span>
+					<span>{item.likes}</span>
 					<Heart size={16} />
 				</div>
 			</li>

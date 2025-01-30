@@ -1,91 +1,114 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, inArray, isNull, or } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
-import { notebooks } from '../db/schema';
-import type { Query } from './queries';
+import { blocks, notebooks } from '../db/schema';
+import type { Block } from './blocks';
+import { NotCreated, NotDeleted, NotFound } from './errors';
+import type { Like } from './likes';
 import type { User } from './users';
 
-export interface Notebook {
-	id: number;
-	name: string;
-	slug: string;
-	author: string;
-	contents: string[];
-	createdAt: Date;
-	updatedAt: Date;
-}
+export type Notebook = Omit<typeof notebooks.$inferSelect, 'deletedAt'>;
+type NewNotebook = Omit<Notebook, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
 
 export interface NotebookRepository {
-	list(author?: User['id']): Promise<Notebook[]>;
-	create(
-		data: Omit<Notebook, 'id' | 'createdAt' | 'updatedAt' | 'author'>,
-		author: User
-	): Promise<Notebook>;
-	read(id: Notebook['id']): Promise<(Notebook & { queries: Query[] }) | null>;
-	read(slug: Notebook['slug']): Promise<(Notebook & { queries: Query[] }) | null>;
-	update(notebook: Notebook): Promise<void>;
-	delete(id: Notebook['id']): Promise<void>;
+	list(author?: User['id']): Promise<(Notebook & { likes: number; author: User })[]>;
+	create(data: NewNotebook): Promise<Notebook>;
+	read(
+		id: Notebook['id'] | Notebook['slug'],
+		user: User['id']
+	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[] }>;
+	update(notebook: Notebook, user: User['id']): Promise<Notebook>;
+	delete(id: Notebook['id'], user: User['id']): Promise<void>;
+	canEdit(id: Notebook['id'], user: User['id']): Promise<boolean>;
 }
 
 class DrizzleNotebookRepository implements NotebookRepository {
 	constructor(private db: DrizzleDatabase) {}
 
-	async list(author?: User['id']): Promise<Notebook[]> {
-		let where = and(eq(notebooks.access, 'public'), isNull(notebooks.deletedAt));
-		if (author) where = and(eq(notebooks.authorId, author), isNull(notebooks.deletedAt));
+	async list(author?: User['id']): Promise<(Notebook & { likes: number; author: User })[]> {
+		let where = and(isNull(notebooks.deletedAt), eq(notebooks.visibility, 'public'));
+		if (author) where = and(isNull(notebooks.deletedAt), eq(notebooks.authorId, author));
 
-		const rows = await this.db.query.notebooks.findMany({ where, with: { author: true } });
+		const rows = await this.db.query.notebooks.findMany({
+			columns: { deletedAt: false },
+			where,
+			orderBy: [desc(notebooks.updatedAt)],
+			with: { author: true, likes: { columns: { count: true } } }
+		});
 
-		return rows.map((r) => ({ ...r, author: r.author.username }));
+		return rows.map((r) => ({ ...r, likes: r.likes.reduce((a, l) => a + l.count, 0) }));
 	}
 
-	async create(
-		data: Omit<Notebook, 'id' | 'createdAt' | 'updatedAt' | 'author'>,
-		author: User
-	): Promise<Notebook> {
+	async create(data: NewNotebook): Promise<Notebook> {
 		const [row] = await this.db
 			.insert(notebooks)
-			.values({ name: data.name, slug: data.slug, contents: data.contents, authorId: author.id })
+			.values({
+				title: data.title,
+				slug: data.slug,
+				visibility: data.visibility,
+				authorId: data.authorId
+			})
 			.returning();
 
-		return { ...row, author: author.username };
+		if (!row) throw new NotCreated('Notebook not created');
+		const { deletedAt, ...notebook } = row;
+		return notebook;
 	}
 
 	async read(
-		idOrSlug: Notebook['id'] | Notebook['slug']
-	): Promise<(Notebook & { queries: Query[] }) | null> {
-		const where =
-			typeof idOrSlug === notebooks.id.dataType
-				? and(isNull(notebooks.deletedAt), eq(notebooks.id, idOrSlug as Notebook['id']))
-				: and(isNull(notebooks.deletedAt), eq(notebooks.slug, idOrSlug as Notebook['slug']));
-
-		const row = await this.db.query.notebooks.findFirst({
-			where,
-			with: { author: true, queries: true }
+		id: Notebook['id'] | Notebook['slug'],
+		user: User['id']
+	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[] }> {
+		const notebook = await this.db.query.notebooks.findFirst({
+			columns: { deletedAt: false },
+			where: and(
+				isNull(notebooks.deletedAt),
+				typeof id === 'number' ? eq(notebooks.id, id) : eq(notebooks.slug, id),
+				or(inArray(notebooks.visibility, ['public', 'unlisted']), eq(notebooks.authorId, user))
+			),
+			with: {
+				author: true,
+				blocks: { orderBy: asc(blocks.position) },
+				likes: true
+			}
 		});
 
-		if (row) {
-			return { ...row, author: row.author.username };
-		}
+		if (!notebook) throw new NotFound('Notebook not found for identifier' + id);
 
-		return null;
+		return notebook;
 	}
 
-	async update({ id, ...update }: Notebook): Promise<void> {
-		await this.db
+	async update({ id, ...notebook }: Notebook, user: User['id']): Promise<Notebook> {
+		const { deletedAt, ...columns } = getTableColumns(notebooks);
+		const [updated] = await this.db
 			.update(notebooks)
-			.set({
-				contents: update.contents,
-				name: update.name,
-				updatedAt: new Date()
-			})
-			.where(and(eq(notebooks.id, id), isNull(notebooks.deletedAt)));
+			.set({ title: notebook.title, visibility: notebook.visibility, updatedAt: new Date() })
+			.where(and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user)))
+			.returning(columns);
+
+		if (!updated) throw new Error('Notebook not updated');
+
+		return updated;
 	}
 
-	async delete(id: Notebook['id']): Promise<void> {
-		await this.db
+	async delete(id: Notebook['id'], user: User['id']): Promise<void> {
+		const result = await this.db
 			.update(notebooks)
-			.set({ updatedAt: sql`datetime('now')`, deletedAt: sql`datetime('now')` })
-			.where(and(eq(notebooks.id, id), isNull(notebooks.deletedAt)));
+			.set({ deletedAt: new Date() })
+			.where(and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user)));
+
+		if (result.rowsAffected === 0)
+			throw new NotDeleted('Notebook not delete for identifier: ' + id);
+
+		if (result.rowsAffected > 1) throw new Error('Deleted more than 1 Notebook');
+	}
+
+	async canEdit(id: Notebook['id'], user: User['id']): Promise<boolean> {
+		const notebook = await this.db.query.notebooks.findFirst({
+			columns: { id: true },
+			where: and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user))
+		});
+
+		return Boolean(notebook);
 	}
 }
 

@@ -1,57 +1,131 @@
 import { relations, sql } from 'drizzle-orm';
-import { index, int, sqliteTable as table, text } from 'drizzle-orm/sqlite-core';
+import {
+	check,
+	index,
+	int,
+	primaryKey,
+	sqliteTable as table,
+	text,
+	unique
+} from 'drizzle-orm/sqlite-core';
 
 export const users = table(
 	'users',
 	{
 		id: int().primaryKey({ autoIncrement: true }),
-		providerId: text('provider_id').notNull().unique(),
-		username: text().notNull().unique()
+		externalId: text('external_id').notNull().unique(),
+		username: text().notNull().unique(),
+		createdAt: int('created_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`)
 	},
 	(t) => [index('username_idx').on(t.username)]
 );
 
-export const notebooks = table(
-	'notebooks',
-	{
-		id: int().primaryKey({ autoIncrement: true }),
-		authorId: int('author_id')
-			.notNull()
-			.references(() => users.id),
-		name: text().notNull(),
-		slug: text().notNull().unique(),
-		contents: text({ mode: 'json' }).$type<string[]>().notNull().default([]),
-		access: text({ enum: ['private', 'public', 'unlisted'] }).default('private'),
-
-		createdAt: int('created_at', { mode: 'timestamp' })
-			.notNull()
-			.default(sql`(unixepoch())`),
-		updatedAt: int('updated_at', { mode: 'timestamp' })
-			.notNull()
-			.default(sql`(unixepoch())`),
-		deletedAt: int('deleted_at', { mode: 'timestamp' })
-	},
-	(t) => [index('slug_idx').on(t.slug)]
-);
-
-export const notebooksRelations = relations(notebooks, ({ one, many }) => ({
-	author: one(users, { fields: [notebooks.authorId], references: [users.id] }),
-	queries: many(queries)
-}));
-
-export const queries = table('queries', {
+export const notebooks = table('notebooks', {
 	id: int().primaryKey({ autoIncrement: true }),
-	sql: text().notNull(),
-	notebookId: int('notebook_id').references(() => notebooks.id, { onDelete: 'set null' }),
+	title: text().notNull(),
+	slug: text().unique().notNull(),
+	authorId: int('author_id')
+		.references(() => users.id, { onDelete: 'no action' })
+		.notNull(),
+	visibility: text({ enum: ['private', 'public', 'unlisted'] })
+		.notNull()
+		.default('unlisted'),
 
 	createdAt: int('created_at', { mode: 'timestamp' })
 		.notNull()
 		.default(sql`(unixepoch())`),
 	updatedAt: int('updated_at', { mode: 'timestamp' })
 		.notNull()
+		.default(sql`(unixepoch())`),
+	deletedAt: int('deleted_at', { mode: 'timestamp' })
+});
+
+export const notebooksRelations = relations(notebooks, ({ one, many }) => ({
+	author: one(users, { fields: [notebooks.authorId], references: [users.id] }),
+	blocks: many(blocks),
+	likes: many(likes),
+	tagsToNotebooks: many(tagsToNotebooks)
+}));
+
+export const blocks = table(
+	'blocks',
+	{
+		id: int().primaryKey({ autoIncrement: true }),
+		notebookId: int('notebook_id')
+			.references(() => notebooks.id, { onDelete: 'cascade' })
+			.notNull(),
+		content: text().notNull(),
+		type: text({ enum: ['markdown', 'sql'] }).notNull(),
+		position: int().notNull(),
+		pinned: int({ mode: 'boolean' }).notNull().default(false),
+
+		createdAt: int('created_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`),
+		updatedAt: int('updated_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`)
+	},
+	(t) => [check('position_check', sql`${t.position} >= 0`)]
+);
+
+export const blocksRelations = relations(blocks, ({ one }) => ({
+	notebook: one(notebooks, { fields: [blocks.notebookId], references: [notebooks.id] })
+}));
+
+export const likes = table(
+	'likes',
+	{
+		userId: int('user_id').references(() => users.id),
+		notebookId: int('notebook_id').references(() => notebooks.id, { onDelete: 'cascade' }),
+		count: int().notNull().default(1),
+		createdAt: int('created_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`),
+		updatedAt: int('updated_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`)
+	},
+	(t) => [
+		primaryKey({ columns: [t.notebookId, t.userId] }),
+		check('count_check', sql`${t.count} <= 10 AND ${t.count} > 0`),
+		unique('user_notebook_unique').on(t.userId, t.notebookId)
+	]
+);
+
+export const likesRelations = relations(likes, ({ one }) => ({
+	user: one(users, { fields: [likes.userId], references: [users.id] }),
+	notebook: one(notebooks, { fields: [likes.notebookId], references: [notebooks.id] })
+}));
+
+export const tags = table('tags', {
+	id: int().primaryKey({ autoIncrement: true }),
+	name: text().notNull().unique(),
+	createdAt: int('created_at', { mode: 'timestamp' })
+		.notNull()
 		.default(sql`(unixepoch())`)
 });
 
-export const queriesRelations = relations(queries, ({ one }) => ({
-	notebook: one(notebooks, { fields: [queries.notebookId], references: [notebooks.id] })
+export const tagsRelations = relations(tags, ({ many }) => ({
+	tagsToNotebooks: many(tagsToNotebooks)
+}));
+
+export const tagsToNotebooks = table(
+	'tags_to_notebooks',
+	{
+		notebookId: int('notebook_id')
+			.references(() => notebooks.id, { onDelete: 'cascade' })
+			.notNull(),
+		tagId: int('tag_id')
+			.references(() => tags.id, { onDelete: 'cascade' })
+			.notNull()
+	},
+	(t) => [primaryKey({ columns: [t.notebookId, t.tagId] })]
+);
+
+export const tagsToNotebooksRelations = relations(tagsToNotebooks, ({ one }) => ({
+	notebook: one(notebooks, { fields: [tagsToNotebooks.notebookId], references: [notebooks.id] }),
+	tag: one(tags, { fields: [tagsToNotebooks.tagId], references: [tags.id] })
 }));

@@ -8,6 +8,8 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	type Prettify<T> = { [K in keyof T]: T[K] } & {};
 }
 
 export {};

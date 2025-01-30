@@ -15,10 +15,7 @@ export async function transform(
 		gfm: true,
 		hooks: {
 			postprocess(html) {
-				return DOMPurify.sanitize(html, {
-					ADD_TAGS: ['code-block'],
-					ADD_ATTR: ['code', 'language']
-				});
+				return DOMPurify.sanitize(html);
 			}
 		}
 	});
