@@ -15,5 +15,5 @@ export const load = (async ({ params }) => {
 
 	if (!notebook) error(404, { message: `Notebook not found: ${params.slug}` });
 
-	return { notebook, canEdit: currentUser.id === notebook.author.id };
+	return { notebook, isAuthor: currentUser.id === notebook.author.id };
 }) satisfies PageServerLoad;

@@ -6,14 +6,16 @@
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import { Editor } from '@agnosticeng/editor';
 	import { untrack } from 'svelte';
+	import { slide } from 'svelte/transition';
 
 	interface Props {
 		value: string;
 		type: EditionBlock['type'];
 		readonly?: boolean;
+		open?: boolean;
 	}
 
-	let { value = $bindable(''), type, readonly }: Props = $props();
+	let { value = $bindable(''), type, readonly, open = true }: Props = $props();
 
 	let html = $state('');
 	$effect.pre(() => void renderMarkdown(untrack(() => value)).then((v) => (html = v)));
@@ -28,33 +30,48 @@
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 		{@html html}
 	</div>
-	<div class="markdown">
-		{#if !readonly}
-			<button onclick={handlePlay}><Play size="16" /></button>
-		{/if}
-		<MarkdownEditor
-			readonly
-			bind:value
-			onRun={() => {
-				handlePlay();
-				return true;
-			}}
-		/>
-	</div>
+	{#if open}
+		<div class="input" transition:slide>
+			{#if !readonly}
+				<button onclick={handlePlay}><Play size="16" /></button>
+			{/if}
+			<MarkdownEditor
+				{readonly}
+				bind:value
+				onRun={() => {
+					handlePlay();
+					return true;
+				}}
+			/>
+		</div>
+	{/if}
 {:else if type === 'sql'}
-	<Editor bind:value />
+	<div class="input">
+		<Editor bind:value />
+	</div>
 {/if}
 
 <style>
 	.output {
 		margin-bottom: 12px;
+		padding-left: 4px;
 	}
 
-	.markdown {
+	.input {
 		width: 100%;
-		border: 1px solid hsl(0deg 0% 30%);
-		border-radius: 3px;
 		position: relative;
+
+		& :global {
+			.cm-editor {
+				border-top-right-radius: 3px;
+				border-bottom-right-radius: 3px;
+				background-color: hsl(0, 0%, 7%);
+			}
+
+			.cm-gutters {
+				display: none;
+			}
+		}
 	}
 
 	button {
@@ -72,8 +89,8 @@
 	button {
 		position: absolute;
 		z-index: 2;
-		top: 0;
-		right: 0;
+		top: 4px;
+		right: 4px;
 
 		height: 24px;
 		aspect-ratio: 1;

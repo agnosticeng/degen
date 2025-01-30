@@ -67,7 +67,7 @@
 	.add-block {
 		position: absolute;
 		top: 0;
-		right: calc(100% + 5px);
+		right: calc(100% + 3px);
 		height: 18px;
 		aspect-ratio: 1;
 		display: flex;

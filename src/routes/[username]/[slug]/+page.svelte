@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Select from '$lib/cmpnt/Select.svelte';
+	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
 	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
 	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
@@ -12,7 +13,8 @@
 	import { updateBlocks } from './requests';
 
 	let { data }: PageProps = $props();
-	let blocks = $state<EditionBlock[]>(data.notebook.blocks);
+	let blocks = $state<(EditionBlock & { open?: boolean })[]>(data.notebook.blocks);
+
 	$effect.pre(() => {
 		if (untrack(() => blocks.length) === 0) {
 			blocks.push({
@@ -33,7 +35,7 @@
 	const debouncedSave = debounce(save, 2_000);
 	const automatic_save = false;
 	$effect(() => {
-		if (data.canEdit && automatic_save) debouncedSave($state.snapshot(blocks));
+		if (data.isAuthor && automatic_save) debouncedSave($state.snapshot(blocks));
 	});
 
 	function handleKeyDown(e: KeyboardEvent) {
@@ -41,15 +43,14 @@
 		const mod = isMac ? e.metaKey : e.ctrlKey;
 
 		if (mod && e.key === 's') {
-			if (!data.canEdit) return;
+			if (!data.isAuthor) return;
 			e.preventDefault();
 			debouncedSave($state.snapshot(blocks));
 		}
 	}
 
 	function handleAdd(type: EditionBlock['type'], at: number) {
-		const block: EditionBlock = { content: ``, type, pinned: false, position: 0 };
-		blocks.splice(at, 0, block);
+		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0, open: true });
 	}
 
 	let selects = $state<ReturnType<typeof Select>[]>([]);
@@ -59,47 +60,70 @@
 	});
 </script>
 
+<svelte:head>
+	<title>@{data.notebook.author.username}/{data.notebook.title}</title>
+</svelte:head>
+
 <svelte:window onkeydown={handleKeyDown} />
+
+{#snippet more(block: EditionBlock, i: number)}
+	<Select bind:this={selects[i]} placement="right-start">
+		<ul role="menu">
+			<li role="menuitem">
+				<button
+					onclick={() => {
+						block.pinned = !block.pinned;
+						selects[i].close();
+					}}
+				>
+					<Pin size="14" />
+					{#if block.pinned}
+						Unpin
+					{:else}
+						Pin
+					{/if}
+				</button>
+			</li>
+			<li role="menuitem">
+				<button class="danger" disabled={blocks.length === 1} onclick={() => blocks.splice(i, 1)}>
+					<Trash size="14" /> Delete
+				</button>
+			</li>
+		</ul>
+	</Select>
+{/snippet}
 
 <section>
 	<header>
-		{#if data.canEdit}
+		{#if data.isAuthor}
 			<button onclick={() => save($state.snapshot(blocks))}>Save</button>
 		{/if}
 	</header>
 	{#each blocks as block, i (block)}
 		<article>
-			{#if data.canEdit}
-				<button class="more" onclick={(e) => selects.at(i)?.open(e.currentTarget)}>
-					<DotsThreeVertical size="14" />
+			<div class="edit-bar">
+				{#if data.isAuthor}
+					<button class="more" onclick={(e) => selects.at(i)?.open(e.currentTarget)}>
+						<DotsThreeVertical size="14" />
+					</button>
+					{@render more(block, i)}
+				{/if}
+				<button
+					class="chevron"
+					class:rotate={!block.open && !block.pinned}
+					onclick={() => (block.open = !block.open)}
+				>
+					<CaretDown size="14" />
 				</button>
-				<Select bind:this={selects[i]} placement="right-start">
-					<ul role="menu">
-						<li role="menuitem">
-							<button onclick={() => (block.pinned = !block.pinned)}>
-								<Pin size="14" />
-								{#if block.pinned}
-									Unpin
-								{:else}
-									Pin
-								{/if}
-							</button>
-						</li>
-						<li role="menuitem">
-							<button
-								class="danger"
-								disabled={blocks.length === 1}
-								onclick={() => blocks.splice(i, 1)}
-							>
-								<Trash size="14" /> Delete
-							</button>
-						</li>
-					</ul>
-				</Select>
-			{/if}
-			<Block bind:value={block.content} type={block.type} readonly={!data.canEdit} />
+			</div>
+			<Block
+				bind:value={block.content}
+				type={block.type}
+				readonly={!data.isAuthor}
+				open={block.open || block.pinned}
+			/>
 		</article>
-		{#if data.canEdit}
+		{#if data.isAuthor}
 			<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
 		{/if}
 	{/each}
@@ -140,33 +164,49 @@
 
 	article {
 		position: relative;
+		min-height: calc(2 * (18px + 8px));
 
-		&::before {
-			content: '';
+		& > .edit-bar {
 			position: absolute;
-
-			width: 20px;
-			right: calc(100% + 4px);
 			top: 0;
 			bottom: 0;
+			right: 100%;
+			width: 24px;
+			padding: 8px 0;
+
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 4px;
+
 			background-color: transparent;
+
+			& > button {
+				height: 18px;
+				aspect-ratio: 1;
+
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				color: hsl(0, 0%, 80%);
+
+				&:is(:hover):not(:disabled) {
+					color: hsl(0, 0%, 90%);
+				}
+			}
 		}
 
-		&:is(:hover, :focus-within)::before {
+		&:is(:hover, :focus-within) > .edit-bar {
 			background-color: hsl(0, 0%, 12%);
 		}
 	}
 
-	button.more {
-		padding: 0;
-		position: absolute;
-		top: 0;
-		right: 100%;
-		transform: translate(-50%, 50%);
-		color: hsl(0, 0%, 80%);
+	button.chevron {
+		transition: transform 0.2s ease;
 
-		&:is(:hover):not(:disabled) {
-			color: hsl(0, 0%, 90%);
+		&.rotate {
+			transform: rotate(-90deg);
 		}
 	}
 
