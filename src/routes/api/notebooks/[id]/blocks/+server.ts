@@ -1,5 +1,6 @@
 import {
 	blockRepository,
+	type Block,
 	type BlockToUpdate,
 	type EditionBlock,
 	type NewBlock
@@ -21,21 +22,23 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	const toUpdate: BlockToUpdate[] = [];
 	const toCreate: NewBlock[] = [];
 	for (const block of blocks) {
-		if ('id' in block) {
+		if (block.id) {
 			const index = blockIDs.indexOf(block.id);
 			if (index !== -1) {
 				blockIDs.splice(index, 1);
 				const existing = notebook.blocks.find((b) => b.id);
-				if (existing?.content !== block.content) toUpdate.push(block);
+				if (!CompareBlock(existing!, block as Block)) toUpdate.push(block as BlockToUpdate);
 			}
 		} else toCreate.push({ ...block, notebookId: notebook.id });
 	}
 
-	await blockRepository.batchCreate(toCreate);
-	await blockRepository.batchUpdate(toUpdate);
-	await blockRepository.batchDelete(blockIDs);
+	await Promise.all([
+		blockRepository.batchCreate(toCreate),
+		blockRepository.batchUpdate(toUpdate),
+		blockRepository.batchDelete(blockIDs)
+	]);
 
-	return json(await blockRepository.list(notebook.id));
+	return json({ blocks: await blockRepository.list(notebook.id) });
 };
 
 interface Body {
@@ -65,5 +68,15 @@ function isEditionBlock(o: unknown): o is EditionBlock {
 		typeof o.position === 'number' &&
 		'pinned' in o &&
 		typeof o.pinned === 'boolean'
+	);
+}
+
+function CompareBlock(a: Block, b: Block) {
+	return (
+		a.id === b.id &&
+		a.content === b.content &&
+		a.position === b.position &&
+		a.pinned === b.pinned &&
+		a.type === b.type
 	);
 }

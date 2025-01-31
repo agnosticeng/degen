@@ -6,9 +6,7 @@ import type { Notebook } from './notebooks';
 export type Block = typeof blocks.$inferSelect;
 export type NewBlock = Omit<Block, 'id' | 'createdAt' | 'updatedAt'>;
 export type BlockToUpdate = Omit<Block, 'createdAt' | 'updatedAt' | 'notebookId'>;
-export type EditionBlock =
-	| Block
-	| Prettify<Omit<Block, 'id' | 'createdAt' | 'updatedAt' | 'notebookId'>>;
+export type EditionBlock = MakeOptional<Block, 'id' | 'createdAt' | 'updatedAt' | 'notebookId'>;
 
 export interface BlockRepository {
 	list(notebook: Notebook['id']): Promise<Block[]>;

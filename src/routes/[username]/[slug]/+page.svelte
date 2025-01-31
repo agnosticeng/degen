@@ -11,9 +11,11 @@
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
+	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Block from './Block.svelte';
+	import ShareModal from './ShareModal.svelte';
 	import Visibility from './Visibility.svelte';
 	import { updateBlocks } from './requests';
 
@@ -22,6 +24,11 @@
 	let shareSelect: ReturnType<typeof Select>;
 	let moreNotebookSelect: ReturnType<typeof Select>;
 
+	let notebook = $state.raw(selectNotebook(data.notebook));
+	function selectNotebook(n: PageProps['data']['notebook']): Notebook {
+		const { author, blocks, likes, ...notebook } = n;
+		return notebook;
+	}
 	let likes = $state(data.notebook.likes);
 	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
 	let liked = $derived(likes.some((l) => l.userId === data.authenticatedUser.id));
@@ -30,6 +37,12 @@
 	);
 
 	let blocks = $state<(EditionBlock & { open?: boolean })[]>(data.notebook.blocks.slice());
+	const lastUpdate = $derived.by(() => {
+		return blocks.reduce(
+			(acc, b) => (b.updatedAt && b.updatedAt.getTime() > acc.getTime() ? b.updatedAt : acc),
+			notebook.updatedAt
+		);
+	});
 
 	function handleAdd(type: EditionBlock['type'], at: number) {
 		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0, open: true });
@@ -48,10 +61,12 @@
 			data.notebook.blocks = updated;
 			blocks.forEach((block, i) => {
 				const next = updated[i];
-				(block as import('$lib/server/repositories/blocks').Block).id = next.id;
-				(block as import('$lib/server/repositories/blocks').Block).position = next.position;
-				(block as import('$lib/server/repositories/blocks').Block).createdAt = next.createdAt;
-				(block as import('$lib/server/repositories/blocks').Block).updatedAt = next.updatedAt;
+				block.id = next.id;
+				block.notebookId = next.notebookId;
+				block.createdAt = next.createdAt;
+				block.updatedAt = next.updatedAt;
+				block.position = next.position;
+				block.pinned = next.pinned;
 			});
 		}
 	}
@@ -66,6 +81,8 @@
 			save($state.snapshot(blocks));
 		}
 	}
+
+	let shareModal: ReturnType<typeof ShareModal>;
 </script>
 
 <svelte:head>
@@ -81,24 +98,9 @@
 	</div>
 
 	<div class="notebook-actions">
-		<button class="share" onclick={(e) => shareSelect.open(e.currentTarget)}>
+		<button class="share" onclick={(e) => shareModal.show()}>
 			<Globe size="16" />Share...
 		</button>
-		<Select bind:this={shareSelect} placement="bottom-end">
-			<ul role="menu" class="share-select">
-				<li><button disabled>Change visibility</button></li>
-				<li>
-					<button
-						onclick={() => {
-							navigator.clipboard.writeText(location.toString());
-							shareSelect.close();
-						}}
-					>
-						Copy link
-					</button>
-				</li>
-			</ul>
-		</Select>
 		{#if data.isAuthor}
 			<button class="save" onclick={() => save($state.snapshot(blocks))}>
 				<FloppyDiskBack size="16" />
@@ -113,25 +115,40 @@
 		<Select bind:this={moreNotebookSelect} placement="bottom-end">
 			<ul role="menu" class="share-select">
 				<li>
+					<button
+						onclick={() => {
+							shareModal.show();
+							moreNotebookSelect.close();
+						}}
+					>
+						<Globe size="14" />Share...
+					</button>
+				</li>
+				<li>
+					<span class="separator"></span>
+				</li>
+				<li>
 					<button class="danger" disabled><Trash size="14" />Delete</button>
 				</li>
 			</ul>
 		</Select>
 	</div>
 </header>
+<ShareModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={shareModal} />
 
 <div class="notebook-info">
-	<Visibility visibility={data.notebook.visibility} />
+	<Visibility visibility={notebook.visibility} />
 	<div class="author">By @{data.notebook.author.username}</div>
 	<div class="updated_at">
-		<PencilSimpleLine size="16" /><span title="Edited {data.notebook.updatedAt.toString()}">
-			Edited {data.notebook.updatedAt.toDateString()}
+		<PencilSimpleLine size="16" /><span title="Edited {notebook.updatedAt.toString()}">
+			Edited {lastUpdate.toDateString()}
 		</span>
 	</div>
 </div>
 
 <hr />
 
+<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
 {#each blocks as block, i (block)}
 	<article>
 		<div class="edit-bar">
@@ -157,8 +174,6 @@
 		/>
 	</article>
 	<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
-{:else}
-	<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
 {/each}
 
 {#snippet more(block: EditionBlock, i: number)}
@@ -268,6 +283,14 @@
 			display: block;
 			padding: 0;
 
+			& > span.separator {
+				display: block;
+				width: 100%;
+				height: 1px;
+				margin: 4px 0;
+				background-color: hsl(0, 0%, 15%);
+			}
+
 			& > button {
 				width: 100%;
 				display: flex;
@@ -328,6 +351,7 @@
 			right: 100%;
 			width: 24px;
 			padding: 8px 0;
+			border-radius: 4px;
 
 			display: flex;
 			flex-direction: column;

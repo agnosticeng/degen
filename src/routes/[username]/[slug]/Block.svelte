@@ -46,9 +46,7 @@
 		</div>
 	{/if}
 {:else if type === 'sql'}
-	<div class="input">
-		<Editor bind:value />
-	</div>
+	<div class="input"><Editor bind:value /></div>
 {/if}
 
 <style>

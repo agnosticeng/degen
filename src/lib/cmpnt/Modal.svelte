@@ -66,7 +66,7 @@
 		border-radius: 6px;
 
 		width: 100%;
-		max-width: 420px;
+		max-width: var(--modal-max-width, 420px);
 	}
 
 	dialog[open] {

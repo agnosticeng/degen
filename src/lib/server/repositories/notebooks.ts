@@ -18,7 +18,6 @@ export interface NotebookRepository {
 	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[] }>;
 	update(notebook: Notebook, user: User['id']): Promise<Notebook>;
 	delete(id: Notebook['id'], user: User['id']): Promise<void>;
-	canEdit(id: Notebook['id'], user: User['id']): Promise<boolean>;
 }
 
 class DrizzleNotebookRepository implements NotebookRepository {
@@ -81,7 +80,12 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		const { deletedAt, ...columns } = getTableColumns(notebooks);
 		const [updated] = await this.db
 			.update(notebooks)
-			.set({ title: notebook.title, visibility: notebook.visibility, updatedAt: new Date() })
+			.set({
+				title: notebook.title,
+				slug: notebook.slug,
+				visibility: notebook.visibility,
+				updatedAt: new Date()
+			})
 			.where(and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user)))
 			.returning(columns);
 
@@ -100,15 +104,6 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			throw new NotDeleted('Notebook not delete for identifier: ' + id);
 
 		if (result.rowsAffected > 1) throw new Error('Deleted more than 1 Notebook');
-	}
-
-	async canEdit(id: Notebook['id'], user: User['id']): Promise<boolean> {
-		const notebook = await this.db.query.notebooks.findFirst({
-			columns: { id: true },
-			where: and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user))
-		});
-
-		return Boolean(notebook);
 	}
 }
 
