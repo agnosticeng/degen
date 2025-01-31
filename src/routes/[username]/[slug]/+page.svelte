@@ -2,78 +2,173 @@
 	import Select from '$lib/cmpnt/Select.svelte';
 	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
 	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
+	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
+	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
+	import Globe from '$lib/cmpnt/svg/globe.svelte';
+	import Heart from '$lib/cmpnt/svg/heart.svelte';
+	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
 	import Pin from '$lib/cmpnt/svg/pin.svelte';
+	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
-	import debounce from 'p-debounce';
-	import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Block from './Block.svelte';
+	import Visibility from './Visibility.svelte';
 	import { updateBlocks } from './requests';
 
 	let { data }: PageProps = $props();
-	let blocks = $state<(EditionBlock & { open?: boolean })[]>(data.notebook.blocks);
 
-	$effect.pre(() => {
-		if (untrack(() => blocks.length) === 0) {
-			blocks.push({
-				content: `# @${data.notebook.author.username}/${data.notebook.title}`,
-				type: 'markdown',
-				pinned: false,
-				position: 0
-			});
-		}
-	});
+	let shareSelect: ReturnType<typeof Select>;
+	let moreNotebookSelect: ReturnType<typeof Select>;
 
-	async function save(nextBlocks: EditionBlock[]) {
-		const positionned = nextBlocks.map((b, i) => ({ ...b, position: i }));
-		const updated = await updateBlocks(data.notebook.id, positionned);
-		if (updated) blocks = updated;
+	let likes = $state(data.notebook.likes);
+	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
+	let liked = $derived(likes.some((l) => l.userId === data.authenticatedUser.id));
+	let canLike = $derived(
+		(likes.find((l) => l.userId === data.authenticatedUser.id)?.count ?? 0) < 10 && !data.isAuthor
+	);
+
+	let blocks = $state<(EditionBlock & { open?: boolean })[]>(data.notebook.blocks.slice());
+
+	function handleAdd(type: EditionBlock['type'], at: number) {
+		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0, open: true });
 	}
 
-	const debouncedSave = debounce(save, 2_000);
-	const automatic_save = false;
+	let blockSelects = $state<ReturnType<typeof Select>[]>([]);
 	$effect(() => {
-		if (data.isAuthor && automatic_save) debouncedSave($state.snapshot(blocks));
+		const filtered = blockSelects.filter(Boolean);
+		if (filtered.length !== blockSelects.length) blockSelects = filtered;
 	});
 
-	function handleKeyDown(e: KeyboardEvent) {
+	async function save(toUpdate: typeof blocks) {
+		const positionned = toUpdate.map((b, i) => ({ ...b, position: i }));
+		const updated = await updateBlocks(data.notebook.id, positionned);
+		if (updated) {
+			data.notebook.blocks = updated;
+			blocks.forEach((block, i) => {
+				const next = updated[i];
+				(block as import('$lib/server/repositories/blocks').Block).id = next.id;
+				(block as import('$lib/server/repositories/blocks').Block).position = next.position;
+				(block as import('$lib/server/repositories/blocks').Block).createdAt = next.createdAt;
+				(block as import('$lib/server/repositories/blocks').Block).updatedAt = next.updatedAt;
+			});
+		}
+	}
+
+	function handleWindowKeydown(e: KeyboardEvent) {
 		const isMac = navigator.userAgent.includes('Macintosh');
 		const mod = isMac ? e.metaKey : e.ctrlKey;
 
 		if (mod && e.key === 's') {
 			if (!data.isAuthor) return;
 			e.preventDefault();
-			debouncedSave($state.snapshot(blocks));
+			save($state.snapshot(blocks));
 		}
 	}
-
-	function handleAdd(type: EditionBlock['type'], at: number) {
-		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0, open: true });
-	}
-
-	let selects = $state<ReturnType<typeof Select>[]>([]);
-	$effect(() => {
-		const filtered = selects.filter(Boolean);
-		if (filtered.length !== selects.length) selects = filtered;
-	});
 </script>
 
 <svelte:head>
 	<title>@{data.notebook.author.username}/{data.notebook.title}</title>
 </svelte:head>
 
-<svelte:window onkeydown={handleKeyDown} />
+<svelte:window onkeydown={handleWindowKeydown} />
+
+<header>
+	<div class="author">
+		<Profile handle={data.notebook.author.username} size={32} />
+		<div class="username">@{data.notebook.author.username}</div>
+	</div>
+
+	<div class="notebook-actions">
+		<button class="share" onclick={(e) => shareSelect.open(e.currentTarget)}>
+			<Globe size="16" />Share...
+		</button>
+		<Select bind:this={shareSelect} placement="bottom-end">
+			<ul role="menu" class="share-select">
+				<li><button disabled>Change visibility</button></li>
+				<li>
+					<button
+						onclick={() => {
+							navigator.clipboard.writeText(location.toString());
+							shareSelect.close();
+						}}
+					>
+						Copy link
+					</button>
+				</li>
+			</ul>
+		</Select>
+		{#if data.isAuthor}
+			<button class="save" onclick={() => save($state.snapshot(blocks))}>
+				<FloppyDiskBack size="16" />
+			</button>
+		{/if}
+		<button class="like" class:full={liked} disabled={!canLike}>
+			<Heart size="16" fill={liked ? 'currentColor' : 'none'} />{likeCount}
+		</button>
+		<button class="more" onclick={(e) => moreNotebookSelect.open(e.currentTarget)}>
+			<DotsThree size="16" />
+		</button>
+		<Select bind:this={moreNotebookSelect} placement="bottom-end">
+			<ul role="menu" class="share-select">
+				<li>
+					<button class="danger" disabled><Trash size="14" />Delete</button>
+				</li>
+			</ul>
+		</Select>
+	</div>
+</header>
+
+<div class="notebook-info">
+	<Visibility visibility={data.notebook.visibility} />
+	<div class="author">By @{data.notebook.author.username}</div>
+	<div class="updated_at">
+		<PencilSimpleLine size="16" /><span title="Edited {data.notebook.updatedAt.toString()}">
+			Edited {data.notebook.updatedAt.toDateString()}
+		</span>
+	</div>
+</div>
+
+<hr />
+
+{#each blocks as block, i (block)}
+	<article>
+		<div class="edit-bar">
+			{#if data.isAuthor}
+				<button class="more" onclick={(e) => blockSelects.at(i)?.open(e.currentTarget)}>
+					<DotsThreeVertical size="14" />
+				</button>
+				{@render more(block, i)}
+			{/if}
+			<button
+				class="chevron"
+				class:rotate={!block.open && !block.pinned}
+				onclick={() => (block.open = !block.open)}
+			>
+				<CaretDown size="14" />
+			</button>
+		</div>
+		<Block
+			bind:value={block.content}
+			type={block.type}
+			readonly={!data.isAuthor}
+			open={block.open || block.pinned}
+		/>
+	</article>
+	<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
+{:else}
+	<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
+{/each}
 
 {#snippet more(block: EditionBlock, i: number)}
-	<Select bind:this={selects[i]} placement="right-start">
+	<Select bind:this={blockSelects[i]} placement="right-start">
 		<ul role="menu">
 			<li role="menuitem">
 				<button
 					onclick={() => {
 						block.pinned = !block.pinned;
-						selects[i].close();
+						blockSelects[i].close();
 					}}
 				>
 					<Pin size="14" />
@@ -85,7 +180,7 @@
 				</button>
 			</li>
 			<li role="menuitem">
-				<button class="danger" disabled={blocks.length === 1} onclick={() => blocks.splice(i, 1)}>
+				<button class="danger" onclick={() => blocks.splice(i, 1)}>
 					<Trash size="14" /> Delete
 				</button>
 			</li>
@@ -93,73 +188,133 @@
 	</Select>
 {/snippet}
 
-<section>
-	<header>
-		{#if data.isAuthor}
-			<button onclick={() => save($state.snapshot(blocks))}>Save</button>
-		{/if}
-	</header>
-	{#each blocks as block, i (block)}
-		<article>
-			<div class="edit-bar">
-				{#if data.isAuthor}
-					<button class="more" onclick={(e) => selects.at(i)?.open(e.currentTarget)}>
-						<DotsThreeVertical size="14" />
-					</button>
-					{@render more(block, i)}
-				{/if}
-				<button
-					class="chevron"
-					class:rotate={!block.open && !block.pinned}
-					onclick={() => (block.open = !block.open)}
-				>
-					<CaretDown size="14" />
-				</button>
-			</div>
-			<Block
-				bind:value={block.content}
-				type={block.type}
-				readonly={!data.isAuthor}
-				open={block.open || block.pinned}
-			/>
-		</article>
-		{#if data.isAuthor}
-			<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
-		{/if}
-	{/each}
-</section>
-
 <style>
-	section {
-		max-width: 1024px;
-		margin: 0 auto;
-		padding: 20px 24px;
-	}
-
 	header {
 		width: 100%;
-		display: flex;
-		justify-content: end;
-	}
+		margin: 16px 0 8px;
 
-	header button {
-		font-size: 14px;
-		font-weight: 500;
-		border: none;
-		cursor: pointer;
-		padding: 8px 16px;
-		color: hsl(0, 0%, 80%);
-		border-radius: 5px;
-		background: hsl(0, 0%, 12%);
-		transition: all 0.2s ease;
 		display: flex;
-		align-items: center;
 		gap: 6px;
 
-		&:hover {
-			background: hsl(0, 0%, 15%);
-			color: hsl(0, 0%, 90%);
+		& > div.author {
+			flex: 1;
+			overflow: hidden;
+
+			display: flex;
+			align-items: center;
+			gap: 8px;
+
+			& > :global(div.avatar) {
+				flex-shrink: 0;
+			}
+
+			& > div.username {
+				flex: 1;
+				font-weight: 500;
+
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				overflow: hidden;
+			}
 		}
+
+		& > div.notebook-actions {
+			flex-shrink: 0;
+
+			display: flex;
+			align-items: center;
+			gap: 5px;
+
+			& > button {
+				padding: 8px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				height: 34px;
+				min-width: 34px;
+				border: 1px solid hsl(0, 0%, 15%);
+				border-radius: 4px;
+				color: hsl(0, 0%, 80%);
+				font-weight: 500;
+
+				&:is(:hover):not(:disabled) {
+					background-color: hsl(0, 0%, 12%);
+					color: hsl(0, 0%, 90%);
+				}
+
+				&:is(:active):not(:disabled) {
+					background-color: hsl(0, 0%, 15%);
+				}
+
+				&:is(:disabled) {
+					color: hsl(0, 0%, 64%);
+					border-color: transparent;
+				}
+			}
+
+			.like.full > :global(svg) {
+				color: hsl(0deg 61% 54%);
+			}
+		}
+	}
+
+	ul[role='menu'] {
+		list-style: none;
+		background-color: hsl(0, 0%, 10%);
+		padding: 8px 0;
+		margin: 0;
+
+		& > li {
+			display: block;
+			padding: 0;
+
+			& > button {
+				width: 100%;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 8px 16px;
+				color: hsl(0, 0%, 80%);
+
+				&:is(:hover, :focus-within):not(:disabled) {
+					color: hsl(0, 0%, 90%);
+					background-color: hsl(0, 0%, 15%);
+
+					&.danger {
+						color: hsl(0deg 61% 54%);
+						background-color: hsl(0, 34%, 12%);
+					}
+				}
+
+				&:is(:disabled) {
+					color: hsl(0, 0%, 65%);
+				}
+			}
+		}
+	}
+
+	.notebook-info {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		flex-wrap: wrap;
+		margin: 8px 0;
+		padding: 16px 0;
+
+		& .updated_at {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+
+			& > :global(svg) {
+				color: hsl(0, 0%, 65%);
+			}
+		}
+	}
+
+	hr {
+		border-color: hsl(0, 0%, 15%);
+		border-width: 0.5px;
 	}
 
 	article {
@@ -194,19 +349,19 @@
 				&:is(:hover):not(:disabled) {
 					color: hsl(0, 0%, 90%);
 				}
+
+				&.chevron {
+					transition: transform 0.2s ease;
+
+					&.rotate {
+						transform: rotate(-90deg);
+					}
+				}
 			}
 		}
 
 		&:is(:hover, :focus-within) > .edit-bar {
 			background-color: hsl(0, 0%, 12%);
-		}
-	}
-
-	button.chevron {
-		transition: transform 0.2s ease;
-
-		&.rotate {
-			transform: rotate(-90deg);
 		}
 	}
 
@@ -220,41 +375,6 @@
 
 		&:is(:hover, :focus-within):not(:disabled) {
 			cursor: pointer;
-		}
-	}
-
-	ul {
-		list-style: none;
-		background-color: hsl(0, 0%, 10%);
-		padding: 8px 0;
-		margin: 0;
-
-		& > li {
-			display: block;
-			padding: 0;
-
-			& > button {
-				width: 100%;
-				display: flex;
-				align-items: center;
-				gap: 8px;
-				padding: 8px 16px;
-				color: hsl(0, 0%, 80%);
-
-				&:is(:hover, :focus-within):not(:disabled) {
-					color: hsl(0, 0%, 90%);
-					background-color: hsl(0, 0%, 15%);
-
-					&.danger {
-						color: hsl(0deg 61% 54%);
-						background-color: hsl(0, 34%, 12%);
-					}
-				}
-
-				&:is(:disabled) {
-					color: hsl(0, 0%, 65%);
-				}
-			}
 		}
 	}
 </style>

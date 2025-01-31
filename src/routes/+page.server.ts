@@ -1,3 +1,4 @@
+import { blockRepository } from '$lib/server/repositories/blocks';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
 import type { User } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
@@ -27,6 +28,16 @@ export const actions = {
 			authorId: currentUser.id,
 			visibility: 'private'
 		});
+
+		await blockRepository.batchCreate([
+			{
+				content: `# @${currentUser.username}/${notebook.title}`,
+				notebookId: notebook.id,
+				pinned: false,
+				position: 0,
+				type: 'markdown'
+			}
+		]);
 
 		redirect(303, `/${currentUser.username}/${notebook.slug}`);
 	}

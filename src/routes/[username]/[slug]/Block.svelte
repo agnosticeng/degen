@@ -68,6 +68,11 @@
 				background-color: hsl(0, 0%, 7%);
 			}
 
+			.cm-scroller {
+				overflow: auto;
+				min-height: 35px;
+			}
+
 			.cm-gutters {
 				display: none;
 			}
@@ -78,7 +83,6 @@
 		appearance: none;
 		outline: none;
 		border: none;
-		font-size: 10px;
 		padding: 0;
 
 		&:is(:hover, :focus-within):not(:disabled) {
