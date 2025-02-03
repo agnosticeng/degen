@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, getTableColumns, inArray, isNull, or } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
-import { blocks, notebooks } from '../db/schema';
+import { blocks, likes, notebooks, users } from '../db/schema';
 import type { Block } from './blocks';
 import { NotCreated, NotDeleted, NotFound } from './errors';
 import type { Like } from './likes';
@@ -24,20 +24,50 @@ class DrizzleNotebookRepository implements NotebookRepository {
 	constructor(private db: DrizzleDatabase) {}
 
 	async list(author?: User['id']): Promise<(Notebook & { likes: number; author: User })[]> {
+		const sq = this.db.$with('notebook_likes').as(
+			this.db
+				.select({
+					notebookId: likes.notebookId,
+					likes: sql<number>`SUM(${likes.count})`.as('likes')
+				})
+				.from(likes)
+				.groupBy(likes.notebookId)
+		);
+
 		let where = and(isNull(notebooks.deletedAt), eq(notebooks.visibility, 'public'));
 		if (author) where = and(isNull(notebooks.deletedAt), eq(notebooks.authorId, author));
 
-		const rows = await this.db.query.notebooks.findMany({
-			columns: { deletedAt: false },
-			where,
-			orderBy: [desc(notebooks.updatedAt)],
-			with: { author: true, likes: { columns: { count: true } } }
-		});
+		const { deletedAt, ...columns } = getTableColumns(notebooks);
 
-		return rows.map((r) => ({ ...r, likes: r.likes.reduce((a, l) => a + l.count, 0) }));
+		const rows = await this.db
+			.with(sq)
+			.select({
+				...columns,
+				likes: sql<number>`COALESCE(${sq.likes}, 0)`,
+				author_username: users.username,
+				author_externalId: users.externalId,
+				author_createdAt: users.createdAt
+			})
+			.from(notebooks)
+			.leftJoin(sq, eq(sq.notebookId, notebooks.id))
+			.innerJoin(users, eq(users.id, notebooks.authorId))
+			.where(where)
+			.orderBy((aliases) => [desc(aliases.likes), desc(aliases.updatedAt)]);
+
+		return rows.map(({ author_username, author_externalId, author_createdAt, ...row }) => ({
+			...row,
+			author: {
+				id: row.authorId,
+				username: author_username,
+				externalId: author_externalId,
+				createdAt: author_createdAt
+			}
+		}));
 	}
 
 	async create(data: NewNotebook): Promise<Notebook> {
+		const { deletedAt, ...columns } = getTableColumns(notebooks);
+
 		const [row] = await this.db
 			.insert(notebooks)
 			.values({
@@ -46,11 +76,10 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				visibility: data.visibility,
 				authorId: data.authorId
 			})
-			.returning();
+			.returning(columns);
 
 		if (!row) throw new NotCreated('Notebook not created');
-		const { deletedAt, ...notebook } = row;
-		return notebook;
+		return row;
 	}
 
 	async read(
