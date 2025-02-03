@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { MarkdownEditor } from '$lib/cmpnt/MarkdownEditor';
 	import Select from '$lib/cmpnt/Select.svelte';
+	import SqlEditor from '$lib/cmpnt/SQLEditor.svelte';
 	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
 	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
 	import Loader from '$lib/cmpnt/svg/loader.svelte';
@@ -11,10 +13,6 @@
 	import { renderMarkdown } from '$lib/markdown';
 	import { exec, isProxyError, type ProxyResponse } from '$lib/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
-	import { Editor as SQLEditor } from '@agnosticeng/editor';
-	import { ClickHouseDialect } from '@agnosticeng/editor/dialect';
-	import { EditorState } from '@codemirror/state';
-	import { EditorView, keymap } from '@codemirror/view';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 
@@ -125,23 +123,9 @@
 						<Play size="14" />
 					{/if}
 				</button>
-				{#if block.type === 'sql'}
-					<SQLEditor
-						bind:value={block.content}
-						dialect={ClickHouseDialect}
-						extensions={[
-							EditorState.readOnly.of(readonly),
-							EditorView.editable.of(!readonly),
-							keymap.of([
-								{
-									key: 'Mod-Enter',
-									preventDefault: true,
-									run: () => (handleRun(), true)
-								}
-							])
-						]}
-					/>
-				{:else if block.type === 'markdown'}
+				{#if block.type === 'sql' && browser}
+					<SqlEditor bind:value={block.content} onRun={() => handleRun()} {readonly} />
+				{:else if block.type === 'markdown' && browser}
 					<MarkdownEditor bind:value={block.content} onRun={() => handleRun()} {readonly} />
 				{/if}
 			</div>

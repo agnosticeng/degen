@@ -2,7 +2,6 @@
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import type { Like } from '$lib/server/repositories/likes';
 	import { easeCubicIn } from 'd3';
-	import { Tween } from 'svelte/motion';
 	import { fly } from 'svelte/transition';
 
 	interface Props {
@@ -16,7 +15,7 @@
 	let { likes = 0, onLike, userLike, disabled, max = 10 }: Props = $props();
 
 	const liked = $derived(Boolean(userLike?.count));
-	const counter = Tween.of(() => userLike?.count ?? 0, { duration: 100 });
+	let counter = $state(userLike?.count ?? 0);
 
 	let pressed = $state(false);
 	let interval: ReturnType<typeof setInterval>;
@@ -25,10 +24,10 @@
 
 	async function onPress() {
 		pressed = true;
-		if (counter.target === max) return;
+		if (counter === max) return;
 		await wait(200);
 		interval = setInterval(() => {
-			if (pressed) counter.set(Math.min(counter.target + 1, max));
+			if (pressed) counter = Math.min(counter + 1, max);
 		}, 150);
 	}
 
@@ -37,8 +36,8 @@
 		clearInterval(interval);
 
 		const count = userLike?.count ?? 0;
-		if (count === max || counter.target === 0) return;
-		onLike?.(counter.target);
+		if (count === max || counter === 0 || count === counter) return;
+		onLike?.(counter);
 	}
 </script>
 
@@ -53,7 +52,7 @@
 >
 	{#if pressed}
 		<span class="user-counter" transition:fly={{ y: 10, easing: easeCubicIn, duration: 150 }}>
-			+{Math.round(counter.current)}
+			+{counter}
 		</span>
 	{/if}
 	<Heart size="16" fill={liked ? 'currentColor' : 'none'} />

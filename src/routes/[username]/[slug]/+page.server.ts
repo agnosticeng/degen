@@ -30,7 +30,7 @@ export const load = (async ({ params }) => {
 	} catch (e) {
 		if (e instanceof NotFound) error(404, { message: `Notebook not found: ${params.slug}` });
 
-		console.error(e);
+		console.error('PageLoad:', e);
 		throw error(500, { message: e instanceof Error ? e.message : 'Something went wrong' });
 	}
 }) satisfies PageServerLoad;
