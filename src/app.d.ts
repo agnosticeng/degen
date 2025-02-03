@@ -8,6 +8,9 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	type Prettify<T> = { [K in keyof T]: T[K] } & {};
+	type MakeOptional<T, K extends keyof T> = Prettify<Partial<Pick<T, K>> & Omit<T, K>>;
 }
 
 export {};

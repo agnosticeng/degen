@@ -1,43 +1,11 @@
-<script>
+<script lang="ts">
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
+	import type { PageProps } from './$types';
 
 	const trends = ['DeFi', 'Stablecoin', 'Base', 'Polymarket'];
-	const items = [
-		{ id: 'a2x9f', title: 'Ethereum Price', date: new Date(), author: 'didierfranc', likes: 111 },
-		{ id: 'b4k7m', title: 'Bitcoin Analysis', date: new Date(), author: 'satoshi', likes: 245 },
-		{ id: 'c6p3n', title: 'DeFi Landscape 2024', date: new Date(), author: 'vitalik', likes: 523 },
-		{ id: 'd8q5r', title: 'Layer 2 Solutions', date: new Date(), author: 'cryptodev', likes: 167 },
-		{ id: 'e1w2s', title: 'NFT Market Update', date: new Date(), author: 'nftexpert', likes: 89 },
-		{
-			id: 'f7y4t',
-			title: 'Smart Contract Security',
-			date: new Date(),
-			author: 'securityguru',
-			likes: 334
-		},
-		{ id: 'g9h6v', title: 'DAO Governance', date: new Date(), author: 'daodude', likes: 156 },
-		{ id: 'h3j8u', title: 'Web3 Development', date: new Date(), author: 'web3dev', likes: 278 },
-		{
-			id: 'i5l1w',
-			title: 'Crypto Regulations',
-			date: new Date(),
-			author: 'cryptolawyer',
-			likes: 192
-		},
-		{
-			id: 'j2m4z',
-			title: 'Metaverse Projects',
-			date: new Date(),
-			author: 'metabuilder',
-			likes: 145
-		}
-	];
-
-	function formatTitle(title) {
-		return title.toLowerCase().replace(/\s+/g, '-');
-	}
+	let { data }: PageProps = $props();
 </script>
 
 <section class="trends">
@@ -47,19 +15,17 @@
 </section>
 <section class="list">
 	<ul>
-		{#each items as item}
+		{#each data.notebooks as item}
 			<li>
 				<div class="item-content">
-					<Profile handle={item.author} size={32} />
+					<Profile handle={item.author.username} size={32} />
 					<div class="item-info">
-						<a href={`${item.author}/${formatTitle(item.title)}`}
-							><h1><Pie /><span>{item.title}</span></h1></a
-						>
+						<a href="/{item.author.username}/{item.slug}">
+							<h1><Pie /><span>{item.title}</span></h1>
+						</a>
 						<div class="author-info">
-							<h2>@{item.author}</h2>
-							<h3>
-								{item.date.toDateString()}
-							</h3>
+							<h2>@{item.author.username}</h2>
+							<h3>{item.createdAt.toDateString()}</h3>
 						</div>
 					</div>
 				</div>

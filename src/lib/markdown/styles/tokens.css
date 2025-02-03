@@ -1,0 +1,13 @@
+:root {
+	--hl-foreground: hsl(220, 3%, 80);
+	/* --hl-background: #333333; */
+	--hl-token-constant: var(--hl-foreground);
+	--hl-token-string: hsl(30, 100%, 30%);
+	--hl-token-comment: hsl(220, 5%, 55%);
+	--hl-token-keyword: hsl(204, 100%, 38%);
+	--hl-token-parameter: var(--hl-foreground);
+	--hl-token-function: hsl(12, 94%, 62%);
+	--hl-token-string-expression: var(--hl-token-string);
+	--hl-token-punctuation: var(--hl-foreground);
+	--hl-token-link: var(--hl-token-keyword);
+}

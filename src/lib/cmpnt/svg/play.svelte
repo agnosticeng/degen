@@ -8,18 +8,13 @@
 	let { size = 24, ...rest }: Props = $props();
 </script>
 
-<svg
-	width={size}
-	height={size}
-	fill="none"
-	viewBox="0 0 24 24"
-	stroke-width="2"
-	stroke="currentColor"
-	{...rest}
->
+<svg viewBox="0 0 24 24" aria-hidden="true" width={size} height={size} {...rest} data-name="play">
 	<path
+		fill="none"
+		stroke="currentColor"
 		stroke-linecap="round"
 		stroke-linejoin="round"
-		d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+		stroke-width="2"
+		d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
 	/>
 </svg>
