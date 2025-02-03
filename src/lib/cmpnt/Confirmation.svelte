@@ -37,35 +37,27 @@
 
 	let { title, description, buttons = {}, danger = false, onClose }: Props = $props();
 
-	let modal = $state<ReturnType<typeof Modal>>();
-	let open = $state(true);
+	let modal: ReturnType<typeof Modal>;
 	let confirmed = $state(false);
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		confirmed = true;
-		modal?.close();
-	}
-
-	function handleClose() {
-		open = false;
-		onClose(confirmed);
+		modal.close();
 	}
 </script>
 
-{#if open}
-	<Modal bind:this={modal} onclose={handleClose}>
-		<form onsubmit={handleSubmit} class:danger>
-			<h1>{title}</h1>
-			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-			<h2>{@html description}</h2>
-			<footer>
-				<button type="button" onclick={() => modal?.close()}>{buttons.cancel ?? 'Cancel'}</button>
-				<button type="submit">{buttons.confirm ?? 'Confirm'}</button>
-			</footer>
-		</form>
-	</Modal>
-{/if}
+<Modal bind:this={modal} onclose={() => onClose(confirmed)}>
+	<form onsubmit={handleSubmit} class:danger>
+		<h1>{title}</h1>
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+		<h2>{@html description}</h2>
+		<footer>
+			<button type="button" onclick={() => modal.close()}>{buttons.cancel ?? 'Cancel'}</button>
+			<button type="submit">{buttons.confirm ?? 'Confirm'}</button>
+		</footer>
+	</form>
+</Modal>
 
 <style>
 	form {

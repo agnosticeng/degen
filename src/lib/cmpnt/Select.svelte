@@ -67,6 +67,7 @@
 		position: fixed;
 		inset: 0;
 		background-color: transparent;
+		z-index: 9999;
 	}
 
 	div[role='dialog'] {

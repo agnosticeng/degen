@@ -107,11 +107,11 @@
 				{@html html}
 			</div>
 		{/if}
-		{#if block.type === 'sql'}
+		{#if block.type === 'sql' && (proxyResponse || error)}
 			<div class="output sql" class:error>
 				{#if proxyResponse}
 					<Table response={proxyResponse} />
-				{:else}
+				{:else if error}
 					<span>{error}</span>
 				{/if}
 			</div>
@@ -197,6 +197,15 @@
 			display: flex;
 			align-items: start;
 			padding: 6px 2px;
+			color: hsl(0, 0%, 80%);
+
+			&:hover:not(:disabled) {
+				color: hsl(0, 0%, 90%);
+			}
+
+			&:disabled {
+				color: hsl(0, 0%, 65%);
+			}
 		}
 
 		& .chevron {

@@ -51,12 +51,6 @@
 		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0 });
 	}
 
-	let blockSelects = $state<ReturnType<typeof Select>[]>([]);
-	$effect(() => {
-		const filtered = blockSelects.filter(Boolean);
-		if (filtered.length !== blockSelects.length) blockSelects = filtered;
-	});
-
 	async function save(toUpdate: typeof blocks) {
 		const positionned = toUpdate.map((b, i) => ({ ...b, position: i }));
 		const updated = await updateBlocks(data.notebook.id, positionned);
