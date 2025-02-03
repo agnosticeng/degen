@@ -7,7 +7,6 @@
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
-	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
 	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
@@ -17,9 +16,10 @@
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Block from './Block.svelte';
+	import LikeButton from './LikeButton.svelte';
 	import ShareModal from './ShareModal.svelte';
 	import Visibility from './Visibility.svelte';
-	import { deleteNotebook, updateBlocks } from './requests';
+	import { deleteNotebook, like, updateBlocks } from './requests';
 
 	let { data }: PageProps = $props();
 
@@ -30,12 +30,17 @@
 		const { author, blocks, likes, ...notebook } = n;
 		return notebook;
 	}
-	let likes = $state(data.notebook.likes);
+	let likes = $state.raw(data.notebook.likes);
 	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
-	let liked = $derived(likes.some((l) => l.userId === data.authenticatedUser.id));
-	let canLike = $derived(
-		(likes.find((l) => l.userId === data.authenticatedUser.id)?.count ?? 0) < 10 && !data.isAuthor
-	);
+	let userLike = $derived(likes.find((l) => l.userId === data.authenticatedUser.id));
+	async function handleLike(count: number) {
+		const l = await like(notebook.id, count);
+		if (l) {
+			const index = likes.findIndex((li) => li.userId === l!.userId);
+			if (index === -1) likes = likes.concat(l);
+			else likes = likes.with(index, l);
+		}
+	}
 
 	let blocks = $state<(EditionBlock & { open?: boolean })[]>(data.notebook.blocks.slice());
 	const lastUpdate = $derived.by(() => {
@@ -122,9 +127,13 @@
 				<FloppyDiskBack size="16" />
 			</button>
 		{/if}
-		<button class="like" class:full={liked} disabled={!canLike}>
-			<Heart size="16" fill={liked ? 'currentColor' : 'none'} />{likeCount}
-		</button>
+		<LikeButton
+			disabled={data.isAuthor}
+			likes={likeCount}
+			max={10}
+			{userLike}
+			onLike={handleLike}
+		/>
 		<button class="more" onclick={(e) => moreNotebookSelect.open(e.currentTarget)}>
 			<DotsThree size="16" />
 		</button>
@@ -283,10 +292,6 @@
 					color: hsl(0, 0%, 64%);
 					border-color: transparent;
 				}
-			}
-
-			.like.full > :global(svg) {
-				color: hsl(0deg 61% 54%);
 			}
 		}
 	}

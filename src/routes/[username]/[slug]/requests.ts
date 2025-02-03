@@ -1,4 +1,5 @@
 import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
+import type { Like } from '$lib/server/repositories/likes';
 import type { Notebook } from '$lib/server/repositories/notebooks';
 
 export async function updateBlocks(id: Notebook['id'], blocks: EditionBlock[]) {
@@ -40,4 +41,23 @@ export async function updateVisibility(id: Notebook['id'], visibility: Notebook[
 export async function deleteNotebook(id: Notebook['id']) {
 	const response = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' });
 	return response.ok;
+}
+
+export async function like(id: Notebook['id'], count: number) {
+	const response = await fetch(`/api/notebooks/${id}/likes`, {
+		method: 'POST',
+		headers: { 'Content-type': 'application/json' },
+		body: JSON.stringify({ count })
+	});
+
+	if (response.ok) {
+		const body = (await response.json()) as {
+			like: Like & { updatedAt: string; createdAt: string };
+		};
+		return {
+			...body.like,
+			createdAt: new Date(body.like.createdAt),
+			updatedAt: new Date(body.like.updatedAt)
+		};
+	}
 }

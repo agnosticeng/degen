@@ -18,7 +18,11 @@
 	let { value = $bindable(''), type, readonly, open = true }: Props = $props();
 
 	let html = $state('');
-	$effect.pre(() => void renderMarkdown(untrack(() => value)).then((v) => (html = v)));
+	$effect.pre(() => {
+		if (type === 'markdown') {
+			void renderMarkdown(untrack(() => value)).then((v) => (html = v));
+		}
+	});
 
 	async function handlePlay() {
 		html = await renderMarkdown(value);

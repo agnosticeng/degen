@@ -11,6 +11,7 @@ declare global {
 
 	type Prettify<T> = { [K in keyof T]: T[K] } & {};
 	type MakeOptional<T, K extends keyof T> = Prettify<Partial<Pick<T, K>> & Omit<T, K>>;
+	type MaybePromise<T> = T | Promise<T>;
 }
 
 export {};

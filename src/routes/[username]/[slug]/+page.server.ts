@@ -11,6 +11,13 @@ const currentUser: User = {
 	createdAt: new Date(1738187245 * 1000)
 };
 
+const secondUser: User = {
+	id: 2,
+	externalId: 'qsdfghjkl',
+	username: 'didierfranc',
+	createdAt: new Date(1738590766 * 1000)
+};
+
 export const load = (async ({ params }) => {
 	try {
 		const notebook = await notebookRepository.read(params.slug, currentUser.id);
