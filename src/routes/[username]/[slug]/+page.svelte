@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
 	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
 	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
@@ -17,11 +19,10 @@
 	import Block from './Block.svelte';
 	import ShareModal from './ShareModal.svelte';
 	import Visibility from './Visibility.svelte';
-	import { updateBlocks } from './requests';
+	import { deleteNotebook, updateBlocks } from './requests';
 
 	let { data }: PageProps = $props();
 
-	let shareSelect: ReturnType<typeof Select>;
 	let moreNotebookSelect: ReturnType<typeof Select>;
 
 	let notebook = $state.raw(selectNotebook(data.notebook));
@@ -83,6 +84,21 @@
 	}
 
 	let shareModal: ReturnType<typeof ShareModal>;
+
+	async function handleDelete() {
+		moreNotebookSelect.close();
+		const confirmed = await confirm({
+			title: 'Delete Notebook',
+			description: `This action cannot be undone. This will permanently delete the <b>${notebook.title}</b> Notebook.`,
+			buttons: { confirm: 'Delete' },
+			danger: true
+		});
+
+		if (confirmed) {
+			const deleted = await deleteNotebook(notebook.id);
+			if (deleted) goto('/');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -128,7 +144,9 @@
 					<span class="separator"></span>
 				</li>
 				<li>
-					<button class="danger" disabled><Trash size="14" />Delete</button>
+					<button class="danger" disabled={!data.isAuthor} onclick={handleDelete}>
+						<Trash size="14" />Delete
+					</button>
 				</li>
 			</ul>
 		</Select>

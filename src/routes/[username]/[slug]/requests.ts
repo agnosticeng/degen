@@ -36,3 +36,8 @@ export async function updateVisibility(id: Notebook['id'], visibility: Notebook[
 		};
 	}
 }
+
+export async function deleteNotebook(id: Notebook['id']) {
+	const response = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' });
+	return response.ok;
+}

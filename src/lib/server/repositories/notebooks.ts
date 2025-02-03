@@ -23,6 +23,11 @@ export interface NotebookRepository {
 class DrizzleNotebookRepository implements NotebookRepository {
 	constructor(private db: DrizzleDatabase) {}
 
+	private get columns() {
+		const { deletedAt, ...columns } = getTableColumns(notebooks);
+		return columns;
+	}
+
 	async list(author?: User['id']): Promise<(Notebook & { likes: number; author: User })[]> {
 		const sq = this.db.$with('notebook_likes').as(
 			this.db
@@ -37,13 +42,11 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		let where = and(isNull(notebooks.deletedAt), eq(notebooks.visibility, 'public'));
 		if (author) where = and(isNull(notebooks.deletedAt), eq(notebooks.authorId, author));
 
-		const { deletedAt, ...columns } = getTableColumns(notebooks);
-
 		const rows = await this.db
 			.with(sq)
 			.select({
-				...columns,
-				likes: sql<number>`COALESCE(${sq.likes}, 0)`,
+				...this.columns,
+				likes: sql<number>`COALESCE(${sq.likes}, 0)`.as('likes'),
 				author_username: users.username,
 				author_externalId: users.externalId,
 				author_createdAt: users.createdAt
@@ -66,8 +69,6 @@ class DrizzleNotebookRepository implements NotebookRepository {
 	}
 
 	async create(data: NewNotebook): Promise<Notebook> {
-		const { deletedAt, ...columns } = getTableColumns(notebooks);
-
 		const [row] = await this.db
 			.insert(notebooks)
 			.values({
@@ -76,7 +77,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				visibility: data.visibility,
 				authorId: data.authorId
 			})
-			.returning(columns);
+			.returning(this.columns);
 
 		if (!row) throw new NotCreated('Notebook not created');
 		return row;
@@ -106,7 +107,6 @@ class DrizzleNotebookRepository implements NotebookRepository {
 	}
 
 	async update({ id, ...notebook }: Notebook, user: User['id']): Promise<Notebook> {
-		const { deletedAt, ...columns } = getTableColumns(notebooks);
 		const [updated] = await this.db
 			.update(notebooks)
 			.set({
@@ -116,7 +116,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				updatedAt: new Date()
 			})
 			.where(and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user)))
-			.returning(columns);
+			.returning(this.columns);
 
 		if (!updated) throw new Error('Notebook not updated');
 
