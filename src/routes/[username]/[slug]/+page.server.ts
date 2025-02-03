@@ -1,3 +1,4 @@
+import { NotFound } from '$lib/server/repositories/errors';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
 import type { User } from '$lib/server/repositories/users';
 import { error } from '@sveltejs/kit';
@@ -11,13 +12,18 @@ const currentUser: User = {
 };
 
 export const load = (async ({ params }) => {
-	const notebook = await notebookRepository.read(params.slug, currentUser.id);
+	try {
+		const notebook = await notebookRepository.read(params.slug, currentUser.id);
 
-	if (!notebook) error(404, { message: `Notebook not found: ${params.slug}` });
+		return {
+			notebook,
+			isAuthor: currentUser.id === notebook.author.id,
+			authenticatedUser: currentUser
+		};
+	} catch (e) {
+		if (e instanceof NotFound) error(404, { message: `Notebook not found: ${params.slug}` });
 
-	return {
-		notebook,
-		isAuthor: currentUser.id === notebook.author.id,
-		authenticatedUser: currentUser
-	};
+		console.error(e);
+		throw error(500, { message: e instanceof Error ? e.message : 'Something went wrong' });
+	}
 }) satisfies PageServerLoad;
