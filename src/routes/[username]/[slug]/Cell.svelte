@@ -7,6 +7,7 @@
 	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Play from '$lib/cmpnt/svg/play.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
+	import Table from '$lib/cmpnt/Table.svelte';
 	import { renderMarkdown } from '$lib/markdown';
 	import { exec, isProxyError, type ProxyResponse } from '$lib/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
@@ -107,11 +108,9 @@
 			</div>
 		{/if}
 		{#if block.type === 'sql'}
-			<div class="output" class:error>
+			<div class="output sql" class:error>
 				{#if proxyResponse}
-					<pre><code style="font-size: 11px; font-family: monospace;"
-							>{JSON.stringify(proxyResponse, null, 2)}</code
-						></pre>
+					<Table response={proxyResponse} />
 				{:else}
 					<span>{error}</span>
 				{/if}
@@ -267,6 +266,11 @@
 			font-family: monospace;
 			font-size: 11px;
 			color: hsl(0deg 100% 90%);
+		}
+
+		&.sql {
+			max-height: 370px;
+			overflow: auto;
 		}
 	}
 
