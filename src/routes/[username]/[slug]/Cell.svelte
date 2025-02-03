@@ -3,10 +3,12 @@
 	import Select from '$lib/cmpnt/Select.svelte';
 	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
 	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
+	import Loader from '$lib/cmpnt/svg/loader.svelte';
 	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Play from '$lib/cmpnt/svg/play.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import { renderMarkdown } from '$lib/markdown';
+	import { exec, isProxyError, type ProxyResponse } from '$lib/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import { Editor as SQLEditor } from '@agnosticeng/editor';
 	import { ClickHouseDialect } from '@agnosticeng/editor/dialect';
@@ -29,25 +31,57 @@
 
 	let html = $state<string>('');
 	onMount(async () => {
-		if (block.type === 'markdown' && block.content) {
-			html = await renderMarkdown(block.content);
+		if (!block.content) return;
+		try {
+			loading = true;
+
+			if (block.type === 'markdown') {
+				html = await renderMarkdown(block.content);
+			}
+
+			if (block.type === 'sql') {
+				proxyResponse = await exec(block.content);
+			}
+		} catch (e) {
+			console.error(e);
+		} finally {
+			loading = false;
 		}
 	});
 
-	const canOpen = $derived(block.type === 'markdown' && !block.pinned && !!html);
-
 	let contentSnapshot = $state(block.content);
 	const dirty = $derived(contentSnapshot !== block.content);
+	let loading = $state(false);
+	let error = $state<string>('');
+	let proxyResponse = $state<ProxyResponse>();
 	async function handleRun() {
 		if (!dirty) return;
 
-		if (block.type === 'markdown') {
-			if (block.content) html = await renderMarkdown(block.content);
-			else html = '';
-		}
+		if (loading) return;
+		loading = true;
+		error = '';
 
-		contentSnapshot = block.content;
+		try {
+			if (block.type === 'markdown') {
+				if (block.content) html = await renderMarkdown(block.content);
+				else html = '';
+			}
+
+			if (block.type === 'sql') {
+				if (block.content) proxyResponse = await exec(block.content);
+				else proxyResponse = undefined;
+			}
+
+			contentSnapshot = block.content;
+		} catch (e) {
+			if (isProxyError(e)) error = e.message;
+			else console.error(e);
+		} finally {
+			loading = false;
+		}
 	}
+
+	const canOpen = $derived(!block.pinned && (!!html || !!proxyResponse));
 </script>
 
 <article>
@@ -72,9 +106,26 @@
 				{@html html}
 			</div>
 		{/if}
+		{#if block.type === 'sql'}
+			<div class="output" class:error>
+				{#if proxyResponse}
+					<pre><code style="font-size: 11px; font-family: monospace;"
+							>{JSON.stringify(proxyResponse, null, 2)}</code
+						></pre>
+				{:else}
+					<span>{error}</span>
+				{/if}
+			</div>
+		{/if}
 		{#if open || block.pinned}
 			<div class="input" transition:slide={{ duration: 200 }}>
-				<button onclick={handleRun} class:dirty><Play size="14" /></button>
+				<button onclick={handleRun} class:dirty disabled={loading}>
+					{#if loading}
+						<Loader size="14" />
+					{:else}
+						<Play size="14" />
+					{/if}
+				</button>
 				{#if block.type === 'sql'}
 					<SQLEditor
 						bind:value={block.content}
@@ -210,6 +261,12 @@
 
 		& > :global(*:last-child) {
 			margin-bottom: 0;
+		}
+
+		&.error {
+			font-family: monospace;
+			font-size: 11px;
+			color: hsl(0deg 100% 90%);
 		}
 	}
 
