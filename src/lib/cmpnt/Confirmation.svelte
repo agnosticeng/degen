@@ -76,13 +76,15 @@
 
 	h1 {
 		font-size: 16px;
-		margin-bottom: 6px;
+		margin: 0;
+		margin-bottom: 12px;
 	}
 
 	h2 {
 		font-weight: 400;
 		font-size: 12px;
 		color: hsl(0, 0%, 65%);
+		margin: 0;
 		margin-bottom: 30px;
 	}
 

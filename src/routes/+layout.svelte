@@ -43,15 +43,16 @@
 					await applyAction(result);
 				}}
 		>
+			<h1>New notebook</h1>
 			<label>
-				<span>Name</span>
+				<span>Title</span>
 				<input
 					type="text"
 					placeholder="Bitcoin Analysis"
 					autocomplete="off"
 					autocapitalize="off"
 					spellcheck="false"
-					name="name"
+					name="title"
 					required
 				/>
 			</label>
@@ -149,6 +150,12 @@
 		color: hsl(0, 0%, 86%);
 	}
 
+	form h1 {
+		font-size: 16px;
+		margin: 0;
+		margin-bottom: 12px;
+	}
+
 	form label {
 		display: block;
 
@@ -157,6 +164,7 @@
 		}
 
 		& > span {
+			font-size: 12px;
 			display: block;
 			margin-bottom: 8px;
 		}

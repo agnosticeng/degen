@@ -12,19 +12,19 @@ const currentUser: User = {
 };
 
 export const load = (async (e) => {
-	return { notebooks: await notebookRepository.list(currentUser.id) };
+	return { notebooks: await notebookRepository.list() };
 }) satisfies PageServerLoad;
 
 export const actions = {
 	create_notebook: async ({ request }) => {
 		const data = await request.formData();
-		const name = data.get('name');
+		const title = data.get('title');
 
-		if (!name || typeof name !== 'string') return fail(400, { message: 'Invalid name' });
+		if (!title || typeof title !== 'string') return fail(400, { message: 'Invalid title' });
 
 		const notebook = await notebookRepository.create({
-			title: name,
-			slug: name.toLowerCase().replace(/\s+/g, '-'),
+			title: title,
+			slug: title.toLowerCase().replace(/\s+/g, '-'),
 			authorId: currentUser.id,
 			visibility: 'private'
 		});

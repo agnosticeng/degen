@@ -46,7 +46,7 @@
 
 <style>
 	div {
-		height: 18px;
+		height: 20px;
 		margin: 5px 0;
 		position: relative;
 	}
@@ -67,8 +67,8 @@
 	.add-block {
 		position: absolute;
 		top: 0;
-		right: calc(100% + 3px);
-		height: 18px;
+		right: 100%;
+		height: 20px;
 		aspect-ratio: 1;
 		display: flex;
 		align-items: center;

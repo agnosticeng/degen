@@ -2,20 +2,17 @@
 	import { goto } from '$app/navigation';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
-	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
-	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
-	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
-	import Block from './Block.svelte';
+	import Cell from './Cell.svelte';
 	import LikeButton from './LikeButton.svelte';
 	import ShareModal from './ShareModal.svelte';
 	import Visibility from './Visibility.svelte';
@@ -42,7 +39,7 @@
 		}
 	}
 
-	let blocks = $state<(EditionBlock & { open?: boolean })[]>(data.notebook.blocks.slice());
+	let blocks = $state<EditionBlock[]>(data.notebook.blocks.slice());
 	const lastUpdate = $derived.by(() => {
 		return blocks.reduce(
 			(acc, b) => (b.updatedAt && b.updatedAt.getTime() > acc.getTime() ? b.updatedAt : acc),
@@ -51,7 +48,7 @@
 	});
 
 	function handleAdd(type: EditionBlock['type'], at: number) {
-		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0, open: true });
+		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0 });
 	}
 
 	let blockSelects = $state<ReturnType<typeof Select>[]>([]);
@@ -177,58 +174,9 @@
 
 <AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
 {#each blocks as block, i (block)}
-	<article>
-		<div class="edit-bar">
-			{#if data.isAuthor}
-				<button class="more" onclick={(e) => blockSelects.at(i)?.open(e.currentTarget)}>
-					<DotsThreeVertical size="14" />
-				</button>
-				{@render more(block, i)}
-			{/if}
-			<button
-				class="chevron"
-				class:rotate={!block.open && !block.pinned}
-				onclick={() => (block.open = !block.open)}
-			>
-				<CaretDown size="14" />
-			</button>
-		</div>
-		<Block
-			bind:value={block.content}
-			type={block.type}
-			readonly={!data.isAuthor}
-			open={block.open || block.pinned}
-		/>
-	</article>
+	<Cell bind:block={blocks[i]} onDelete={() => blocks.splice(i, 1)} readonly={!data.isAuthor} />
 	<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
 {/each}
-
-{#snippet more(block: EditionBlock, i: number)}
-	<Select bind:this={blockSelects[i]} placement="right-start">
-		<ul role="menu">
-			<li role="menuitem">
-				<button
-					onclick={() => {
-						block.pinned = !block.pinned;
-						blockSelects[i].close();
-					}}
-				>
-					<Pin size="14" />
-					{#if block.pinned}
-						Unpin
-					{:else}
-						Pin
-					{/if}
-				</button>
-			</li>
-			<li role="menuitem">
-				<button class="danger" onclick={() => blocks.splice(i, 1)}>
-					<Trash size="14" /> Delete
-				</button>
-			</li>
-		</ul>
-	</Select>
-{/snippet}
 
 <style>
 	header {
@@ -361,55 +309,6 @@
 	hr {
 		border-color: hsl(0, 0%, 15%);
 		border-width: 0.5px;
-	}
-
-	article {
-		position: relative;
-		min-height: calc(2 * (18px + 8px));
-
-		& > .edit-bar {
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			right: 100%;
-			width: 24px;
-			padding: 8px 0;
-			border-radius: 4px;
-
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: 4px;
-
-			background-color: transparent;
-
-			& > button {
-				height: 18px;
-				aspect-ratio: 1;
-
-				display: flex;
-				align-items: center;
-				justify-content: center;
-
-				color: hsl(0, 0%, 80%);
-
-				&:is(:hover):not(:disabled) {
-					color: hsl(0, 0%, 90%);
-				}
-
-				&.chevron {
-					transition: transform 0.2s ease;
-
-					&.rotate {
-						transform: rotate(-90deg);
-					}
-				}
-			}
-		}
-
-		&:is(:hover, :focus-within) > .edit-bar {
-			background-color: hsl(0, 0%, 12%);
-		}
 	}
 
 	button {
