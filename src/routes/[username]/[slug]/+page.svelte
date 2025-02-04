@@ -98,7 +98,7 @@
 </script>
 
 <svelte:head>
-	<title>@{data.notebook.author.username}/{data.notebook.title}</title>
+	<title>{data.notebook.author.username}/{data.notebook.title}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleWindowKeydown} />
@@ -288,6 +288,7 @@
 		flex-wrap: wrap;
 		margin: 8px 0;
 		padding: 16px 0;
+		font-size: 14px;
 
 		& .updated_at {
 			display: flex;

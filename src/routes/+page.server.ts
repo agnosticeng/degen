@@ -31,7 +31,7 @@ export const actions = {
 
 		await blockRepository.batchCreate([
 			{
-				content: `# @${currentUser.username}/${notebook.title}`,
+				content: `# ${currentUser.username}/${notebook.title}`,
 				notebookId: notebook.id,
 				pinned: false,
 				position: 0,

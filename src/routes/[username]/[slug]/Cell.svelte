@@ -15,6 +15,7 @@
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import './markdown.css';
 
 	interface Props {
 		block: EditionBlock;
@@ -100,7 +101,7 @@
 	</div>
 	<div class="cell-content">
 		{#if block.type === 'markdown' && html}
-			<div class="output">
+			<div class="output markdown-body">
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html html}
 			</div>
