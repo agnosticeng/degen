@@ -9,10 +9,10 @@
 	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Play from '$lib/cmpnt/svg/play.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
-	import Table from '$lib/cmpnt/Table.svelte';
 	import { renderMarkdown } from '$lib/markdown';
 	import { exec, isProxyError, type ProxyResponse } from '$lib/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
+	import { Table } from '@agnosticeng/dv';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import './markdown.css';
@@ -109,7 +109,7 @@
 		{#if block.type === 'sql' && (proxyResponse || error)}
 			<div class="output sql" class:error>
 				{#if proxyResponse}
-					<Table response={proxyResponse} />
+					<Table data={proxyResponse.data} columns={proxyResponse.meta} />
 				{:else if error}
 					<span>{error}</span>
 				{/if}
