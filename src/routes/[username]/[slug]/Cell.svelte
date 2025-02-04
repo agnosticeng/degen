@@ -243,13 +243,34 @@
 		border-bottom-left-radius: 0;
 	}
 
+	article:is(:hover) .output {
+		border-color: hsl(0, 0%, 10%);
+	}
+
 	article:is(:focus-within) .input :global(.cm-editor) {
 		background-color: hsl(214, 14%, 18%);
+	}
+
+	article:is(:focus-within) .output {
+		border-color: hsl(214, 14%, 18%);
 	}
 
 	.output {
 		padding-bottom: 12px;
 		padding-left: 2px;
+		border: 1px solid transparent;
+		border-left: none;
+		border-radius: 3px;
+
+		&:has(+ .input) {
+			border-bottom-left-radius: 0;
+			border-bottom-right-radius: 0;
+		}
+
+		& + .input :global(.cm-editor) {
+			border-top-left-radius: 0;
+			border-top-right-radius: 0;
+		}
 
 		& > :global(*:last-child) {
 			margin-bottom: 0;
