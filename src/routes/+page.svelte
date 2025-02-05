@@ -8,6 +8,10 @@
 	let { data }: PageProps = $props();
 </script>
 
+<svelte:head>
+	<title>Degen</title>
+</svelte:head>
+
 <section class="trends">
 	{#each trends as trend}
 		<button class="trend-button"><i>#</i>{trend}</button>
