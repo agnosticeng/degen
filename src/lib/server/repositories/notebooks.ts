@@ -10,11 +10,14 @@ export type Notebook = Omit<typeof notebooks.$inferSelect, 'deletedAt'>;
 type NewNotebook = Omit<Notebook, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
 
 export interface NotebookRepository {
-	list(author?: User['id']): Promise<(Notebook & { likes: number; author: User })[]>;
+	list(
+		author?: User['id'],
+		user?: User['id']
+	): Promise<(Notebook & { likes: number; author: User })[]>;
 	create(data: NewNotebook): Promise<Notebook>;
 	read(
 		id: Notebook['id'] | Notebook['slug'],
-		user: User['id']
+		user?: User['id']
 	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[] }>;
 	update(notebook: Notebook, user: User['id']): Promise<Notebook>;
 	delete(id: Notebook['id'], user: User['id']): Promise<void>;
@@ -28,7 +31,10 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		return columns;
 	}
 
-	async list(author?: User['id']): Promise<(Notebook & { likes: number; author: User })[]> {
+	async list(
+		author?: User['id'],
+		user?: User['id']
+	): Promise<(Notebook & { likes: number; author: User })[]> {
 		const sq = this.db.$with('notebook_likes').as(
 			this.db
 				.select({
@@ -39,8 +45,9 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				.groupBy(likes.notebookId)
 		);
 
-		let where = and(isNull(notebooks.deletedAt), eq(notebooks.visibility, 'public'));
-		if (author) where = and(isNull(notebooks.deletedAt), eq(notebooks.authorId, author));
+		const conditions: Parameters<typeof and> = [isNull(notebooks.deletedAt)];
+		if (author) conditions.push(eq(notebooks.authorId, author));
+		if (!user || user !== author) conditions.push(eq(notebooks.visibility, 'public'));
 
 		const rows = await this.db
 			.with(sq)
@@ -54,7 +61,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			.from(notebooks)
 			.leftJoin(sq, eq(sq.notebookId, notebooks.id))
 			.innerJoin(users, eq(users.id, notebooks.authorId))
-			.where(where)
+			.where(and(...conditions))
 			.orderBy((aliases) => [desc(aliases.likes), desc(aliases.updatedAt)]);
 
 		return rows.map(({ author_username, author_externalId, author_createdAt, ...row }) => ({
@@ -85,14 +92,16 @@ class DrizzleNotebookRepository implements NotebookRepository {
 
 	async read(
 		id: Notebook['id'] | Notebook['slug'],
-		user: User['id']
+		user?: User['id']
 	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[] }> {
 		const notebook = await this.db.query.notebooks.findFirst({
 			columns: { deletedAt: false },
 			where: and(
 				isNull(notebooks.deletedAt),
 				typeof id === 'number' ? eq(notebooks.id, id) : eq(notebooks.slug, id),
-				or(inArray(notebooks.visibility, ['public', 'unlisted']), eq(notebooks.authorId, user))
+				user
+					? or(inArray(notebooks.visibility, ['public', 'unlisted']), eq(notebooks.authorId, user))
+					: inArray(notebooks.visibility, ['public', 'unlisted'])
 			),
 			with: {
 				author: true,
