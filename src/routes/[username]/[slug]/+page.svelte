@@ -1,27 +1,25 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
-	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
-	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
-	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
-	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
-	import Block from './Block.svelte';
+	import Cell from './Cell.svelte';
+	import LikeButton from './LikeButton.svelte';
 	import ShareModal from './ShareModal.svelte';
 	import Visibility from './Visibility.svelte';
-	import { updateBlocks } from './requests';
+	import { deleteNotebook, like, updateBlocks } from './requests';
 
 	let { data }: PageProps = $props();
 
-	let shareSelect: ReturnType<typeof Select>;
 	let moreNotebookSelect: ReturnType<typeof Select>;
 
 	let notebook = $state.raw(selectNotebook(data.notebook));
@@ -29,14 +27,19 @@
 		const { author, blocks, likes, ...notebook } = n;
 		return notebook;
 	}
-	let likes = $state(data.notebook.likes);
+	let likes = $state.raw(data.notebook.likes);
 	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
-	let liked = $derived(likes.some((l) => l.userId === data.authenticatedUser.id));
-	let canLike = $derived(
-		(likes.find((l) => l.userId === data.authenticatedUser.id)?.count ?? 0) < 10 && !data.isAuthor
-	);
+	let userLike = $derived(likes.find((l) => l.userId === data.authenticatedUser.id));
+	async function handleLike(count: number) {
+		const l = await like(notebook.id, count);
+		if (l) {
+			const index = likes.findIndex((li) => li.userId === l!.userId);
+			if (index === -1) likes = likes.concat(l);
+			else likes = likes.with(index, l);
+		}
+	}
 
-	let blocks = $state<(EditionBlock & { open?: boolean })[]>(data.notebook.blocks.slice());
+	let blocks = $state<EditionBlock[]>(data.notebook.blocks.slice());
 	const lastUpdate = $derived.by(() => {
 		return blocks.reduce(
 			(acc, b) => (b.updatedAt && b.updatedAt.getTime() > acc.getTime() ? b.updatedAt : acc),
@@ -45,14 +48,8 @@
 	});
 
 	function handleAdd(type: EditionBlock['type'], at: number) {
-		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0, open: true });
+		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0 });
 	}
-
-	let blockSelects = $state<ReturnType<typeof Select>[]>([]);
-	$effect(() => {
-		const filtered = blockSelects.filter(Boolean);
-		if (filtered.length !== blockSelects.length) blockSelects = filtered;
-	});
 
 	async function save(toUpdate: typeof blocks) {
 		const positionned = toUpdate.map((b, i) => ({ ...b, position: i }));
@@ -83,10 +80,25 @@
 	}
 
 	let shareModal: ReturnType<typeof ShareModal>;
+
+	async function handleDelete() {
+		moreNotebookSelect.close();
+		const confirmed = await confirm({
+			title: 'Delete Notebook',
+			description: `This action cannot be undone. This will permanently delete the <b>${notebook.title}</b> Notebook.`,
+			buttons: { confirm: 'Delete' },
+			danger: true
+		});
+
+		if (confirmed) {
+			const deleted = await deleteNotebook(notebook.id);
+			if (deleted) goto('/');
+		}
+	}
 </script>
 
 <svelte:head>
-	<title>@{data.notebook.author.username}/{data.notebook.title}</title>
+	<title>{data.notebook.author.username}/{data.notebook.title}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleWindowKeydown} />
@@ -94,11 +106,13 @@
 <header>
 	<div class="author">
 		<Profile handle={data.notebook.author.username} size={32} />
-		<div class="username">@{data.notebook.author.username}</div>
+		<div class="username">
+			<a href="/?author={data.notebook.author.username}">{data.notebook.author.username}</a>
+		</div>
 	</div>
 
 	<div class="notebook-actions">
-		<button class="share" onclick={(e) => shareModal.show()}>
+		<button class="share" onclick={() => shareModal.show()}>
 			<Globe size="16" />Share...
 		</button>
 		{#if data.isAuthor}
@@ -106,9 +120,13 @@
 				<FloppyDiskBack size="16" />
 			</button>
 		{/if}
-		<button class="like" class:full={liked} disabled={!canLike}>
-			<Heart size="16" fill={liked ? 'currentColor' : 'none'} />{likeCount}
-		</button>
+		<LikeButton
+			disabled={data.isAuthor}
+			likes={likeCount}
+			max={10}
+			{userLike}
+			onLike={handleLike}
+		/>
 		<button class="more" onclick={(e) => moreNotebookSelect.open(e.currentTarget)}>
 			<DotsThree size="16" />
 		</button>
@@ -128,17 +146,26 @@
 					<span class="separator"></span>
 				</li>
 				<li>
-					<button class="danger" disabled><Trash size="14" />Delete</button>
+					<button class="danger" disabled={!data.isAuthor} onclick={handleDelete}>
+						<Trash size="14" />Delete
+					</button>
 				</li>
 			</ul>
 		</Select>
 	</div>
 </header>
-<ShareModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={shareModal} />
+<ShareModal
+	{notebook}
+	onSuccess={(n) => (notebook = n)}
+	bind:this={shareModal}
+	disabled={!data.isAuthor}
+/>
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />
-	<div class="author">By @{data.notebook.author.username}</div>
+	<div class="author">
+		By <a href="/?author={data.notebook.author.username}">@{data.notebook.author.username}</a>
+	</div>
 	<div class="updated_at">
 		<PencilSimpleLine size="16" /><span title="Edited {notebook.updatedAt.toString()}">
 			Edited {lastUpdate.toDateString()}
@@ -146,62 +173,17 @@
 	</div>
 </div>
 
-<hr />
+<hr class:mx-bottom={!data.isAuthor} />
 
-<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
+{#if data.isAuthor}
+	<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
+{/if}
 {#each blocks as block, i (block)}
-	<article>
-		<div class="edit-bar">
-			{#if data.isAuthor}
-				<button class="more" onclick={(e) => blockSelects.at(i)?.open(e.currentTarget)}>
-					<DotsThreeVertical size="14" />
-				</button>
-				{@render more(block, i)}
-			{/if}
-			<button
-				class="chevron"
-				class:rotate={!block.open && !block.pinned}
-				onclick={() => (block.open = !block.open)}
-			>
-				<CaretDown size="14" />
-			</button>
-		</div>
-		<Block
-			bind:value={block.content}
-			type={block.type}
-			readonly={!data.isAuthor}
-			open={block.open || block.pinned}
-		/>
-	</article>
-	<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
+	<Cell bind:block={blocks[i]} onDelete={() => blocks.splice(i, 1)} readonly={!data.isAuthor} />
+	{#if data.isAuthor}
+		<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
+	{/if}
 {/each}
-
-{#snippet more(block: EditionBlock, i: number)}
-	<Select bind:this={blockSelects[i]} placement="right-start">
-		<ul role="menu">
-			<li role="menuitem">
-				<button
-					onclick={() => {
-						block.pinned = !block.pinned;
-						blockSelects[i].close();
-					}}
-				>
-					<Pin size="14" />
-					{#if block.pinned}
-						Unpin
-					{:else}
-						Pin
-					{/if}
-				</button>
-			</li>
-			<li role="menuitem">
-				<button class="danger" onclick={() => blocks.splice(i, 1)}>
-					<Trash size="14" /> Delete
-				</button>
-			</li>
-		</ul>
-	</Select>
-{/snippet}
 
 <style>
 	header {
@@ -266,10 +248,6 @@
 					border-color: transparent;
 				}
 			}
-
-			.like.full > :global(svg) {
-				color: hsl(0deg 61% 54%);
-			}
 		}
 	}
 
@@ -323,6 +301,7 @@
 		flex-wrap: wrap;
 		margin: 8px 0;
 		padding: 16px 0;
+		font-size: 14px;
 
 		& .updated_at {
 			display: flex;
@@ -338,54 +317,9 @@
 	hr {
 		border-color: hsl(0, 0%, 15%);
 		border-width: 0.5px;
-	}
 
-	article {
-		position: relative;
-		min-height: calc(2 * (18px + 8px));
-
-		& > .edit-bar {
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			right: 100%;
-			width: 24px;
-			padding: 8px 0;
-			border-radius: 4px;
-
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: 4px;
-
-			background-color: transparent;
-
-			& > button {
-				height: 18px;
-				aspect-ratio: 1;
-
-				display: flex;
-				align-items: center;
-				justify-content: center;
-
-				color: hsl(0, 0%, 80%);
-
-				&:is(:hover):not(:disabled) {
-					color: hsl(0, 0%, 90%);
-				}
-
-				&.chevron {
-					transition: transform 0.2s ease;
-
-					&.rotate {
-						transform: rotate(-90deg);
-					}
-				}
-			}
-		}
-
-		&:is(:hover, :focus-within) > .edit-bar {
-			background-color: hsl(0, 0%, 12%);
+		&.mx-bottom {
+			margin-bottom: 20px;
 		}
 	}
 
@@ -400,5 +334,9 @@
 		&:is(:hover, :focus-within):not(:disabled) {
 			cursor: pointer;
 		}
+	}
+
+	a:hover {
+		color: hsl(224 60% 54%);
 	}
 </style>

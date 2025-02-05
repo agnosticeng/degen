@@ -8,6 +8,10 @@
 	let { data }: PageProps = $props();
 </script>
 
+<svelte:head>
+	<title>Degen</title>
+</svelte:head>
+
 <section class="trends">
 	{#each trends as trend}
 		<button class="trend-button"><i>#</i>{trend}</button>
@@ -24,7 +28,7 @@
 							<h1><Pie /><span>{item.title}</span></h1>
 						</a>
 						<div class="author-info">
-							<h2>@{item.author.username}</h2>
+							<h2><a href="?author={item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
 						</div>
 					</div>

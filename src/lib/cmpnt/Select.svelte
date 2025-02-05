@@ -5,19 +5,19 @@
 	import { fade, fly } from 'svelte/transition';
 
 	interface Props {
-		trigger?: HTMLElement;
+		anchor?: HTMLElement;
 		placement?: Placement;
 		children?: Snippet;
 	}
 
-	let { trigger, placement = 'bottom-start', children }: Props = $props();
+	let { anchor, placement = 'bottom-start', children }: Props = $props();
 
 	let opened = $state(false);
 	let dropdown = $state<HTMLElement>();
 
 	$effect(() => {
-		if (opened && trigger && dropdown) {
-			computePosition(trigger, dropdown, {
+		if (opened && anchor && dropdown) {
+			computePosition(anchor, dropdown, {
 				placement,
 				middleware: [offset(5), flip(), shift({ padding: 5 })]
 			}).then(({ x, y }) => {
@@ -31,13 +31,13 @@
 	}
 
 	export function open(target?: HTMLElement) {
-		if (target) trigger = target;
+		if (target) anchor = target;
 		opened = true;
 	}
 
 	async function handleResize() {
-		if (opened && trigger && dropdown) {
-			const { x, y } = await computePosition(trigger, dropdown, {
+		if (opened && anchor && dropdown) {
+			const { x, y } = await computePosition(anchor, dropdown, {
 				placement,
 				middleware: [offset(5), flip(), shift({ padding: 5 })]
 			});
@@ -67,6 +67,7 @@
 		position: fixed;
 		inset: 0;
 		background-color: transparent;
+		z-index: 9999;
 	}
 
 	div[role='dialog'] {

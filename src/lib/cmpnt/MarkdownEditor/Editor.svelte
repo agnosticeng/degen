@@ -7,11 +7,11 @@
 
 	interface Props {
 		value?: string;
-		onRun?: () => boolean;
+		onRun?: () => unknown;
 		readonly?: boolean;
 	}
 
-	let { value = $bindable(''), onRun = () => true, readonly = false }: Props = $props();
+	let { value = $bindable(''), onRun = () => {}, readonly = false }: Props = $props();
 
 	let container: HTMLDivElement;
 	let view: EditorView;
@@ -37,7 +37,7 @@
 					{
 						key: 'Mod-Enter',
 						preventDefault: true,
-						run: () => onRun()
+						run: () => (onRun(), true)
 					}
 				])
 			]
