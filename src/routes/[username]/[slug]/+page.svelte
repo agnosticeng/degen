@@ -112,7 +112,7 @@
 	</div>
 
 	<div class="notebook-actions">
-		<button class="share" onclick={(e) => shareModal.show()}>
+		<button class="share" onclick={() => shareModal.show()}>
 			<Globe size="16" />Share...
 		</button>
 		{#if data.isAuthor}
@@ -154,7 +154,12 @@
 		</Select>
 	</div>
 </header>
-<ShareModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={shareModal} />
+<ShareModal
+	{notebook}
+	onSuccess={(n) => (notebook = n)}
+	bind:this={shareModal}
+	disabled={!data.isAuthor}
+/>
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />
@@ -168,12 +173,16 @@
 	</div>
 </div>
 
-<hr />
+<hr class:mx-bottom={!data.isAuthor} />
 
-<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
+{#if data.isAuthor}
+	<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
+{/if}
 {#each blocks as block, i (block)}
 	<Cell bind:block={blocks[i]} onDelete={() => blocks.splice(i, 1)} readonly={!data.isAuthor} />
-	<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
+	{#if data.isAuthor}
+		<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
+	{/if}
 {/each}
 
 <style>
@@ -308,6 +317,10 @@
 	hr {
 		border-color: hsl(0, 0%, 15%);
 		border-width: 0.5px;
+
+		&.mx-bottom {
+			margin-bottom: 20px;
+		}
 	}
 
 	button {

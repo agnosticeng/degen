@@ -8,9 +8,10 @@
 	interface Props {
 		notebook: Notebook;
 		onSuccess?: (notebook: Notebook) => void;
+		disabled?: boolean;
 	}
 
-	let { notebook, onSuccess }: Props = $props();
+	let { notebook, onSuccess, disabled = false }: Props = $props();
 	let open = $state(false);
 	let modal = $state<ReturnType<typeof Modal>>();
 
@@ -61,7 +62,7 @@
 			<h3>Access</h3>
 			<label class="access">
 				<span>Visibility</span>
-				<select name="visibility" value={notebook.visibility} required>
+				<select name="visibility" value={notebook.visibility} required {disabled}>
 					<option value="public">Public</option>
 					<option value="unlisted">Unlisted</option>
 					<option value="private">Private</option>
@@ -69,7 +70,7 @@
 			</label>
 			<div class="actions">
 				<button type="button" onclick={() => modal?.close()}>Cancel</button>
-				<button type="submit">Save</button>
+				<button type="submit" {disabled}>Save</button>
 			</div>
 		</form>
 	</Modal>
@@ -132,6 +133,10 @@
 			border-radius: 5px;
 			border: 1px solid hsl(0, 0%, 15%);
 			color: inherit;
+
+			&:disabled {
+				background-image: none;
+			}
 		}
 	}
 
@@ -159,7 +164,6 @@
 		font-size: 14px;
 		font-weight: 500;
 		border: none;
-		cursor: pointer;
 		padding: 8px 16px;
 		color: hsl(0, 0%, 80%);
 		border-radius: 5px;
@@ -173,9 +177,14 @@
 			background-color: hsl(0, 0%, 12%);
 		}
 
-		&:hover {
+		&:not(:disabled):hover {
 			background-color: hsl(0, 0%, 15%);
 			color: hsl(0, 0%, 90%);
+		}
+
+		&:disabled {
+			background-color: hsl(0, 0%, 26%);
+			color: hsl(0, 0%, 65%);
 		}
 
 		&.bordered {
