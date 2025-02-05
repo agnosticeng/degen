@@ -6,18 +6,20 @@ import type { RequestHandler } from './$types';
 
 const currentUser = { id: 1 };
 
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST: RequestHandler = async ({ params, request, locals }) => {
+	if (!locals.user) error(401);
+
 	const notebookId = Number(params.id);
 	const body = await request.json();
 	if (!isBody(body)) error(400, { message: 'Bad request' });
 	if (body.count < 1 || body.count > 10) error(400, { message: 'Invalid count parameter' });
 
 	try {
-		const notebook = await notebookRepository.read(notebookId, currentUser.id);
+		const notebook = await notebookRepository.read(notebookId, locals.user.id);
 		if (notebook.authorId === currentUser.id)
 			error(403, { message: 'User cannot like his own notebook' });
 
-		const like = await likeRepository.like(notebookId, currentUser.id, body.count);
+		const like = await likeRepository.like(notebookId, locals.user.id, body.count);
 		return json({ like });
 	} catch (e) {
 		if (e instanceof NotFound) error(404, { message: 'Notebook not found' });

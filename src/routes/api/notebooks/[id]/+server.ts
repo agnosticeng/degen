@@ -3,9 +3,11 @@ import { notebookRepository, type Notebook } from '$lib/server/repositories/note
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, locals }) => {
+	if (!locals.user) error(401);
+
 	try {
-		await notebookRepository.delete(Number(params.id), 1 /** Current User ID */);
+		await notebookRepository.delete(Number(params.id), locals.user.id);
 		return new Response(null, { status: 204 });
 	} catch (e) {
 		if (e instanceof NotDeleted) error(400, { message: e.message });
@@ -14,17 +16,19 @@ export const DELETE: RequestHandler = async ({ params }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
+	if (!locals.user) error(401);
+
 	const data = await request.json();
 	if (!isBody(data)) error(400, 'Invalid request body');
 
-	const notebook = await notebookRepository.read(Number(params.id), 1 /** Current User ID */);
+	const notebook = await notebookRepository.read(Number(params.id), locals.user.id);
 	if (!notebook) error(404, 'Notebook not found');
 	const { author, likes, blocks, ...previous } = notebook;
 
 	const updated = await notebookRepository.update(
 		{ ...previous, visibility: data.visibility },
-		1 /** Current User ID */
+		locals.user.id
 	);
 
 	return json({ notebook: updated });

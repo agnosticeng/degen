@@ -9,12 +9,14 @@ import { notebookRepository } from '$lib/server/repositories/notebooks';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
+	if (!locals.user) error(401);
+
 	const data = await request.json();
 	if (!isBody(data)) error(400, 'Invalid request body');
 	const { blocks } = data;
 
-	const notebook = await notebookRepository.read(Number(params.id), 1 /* Current User */);
+	const notebook = await notebookRepository.read(Number(params.id), locals.user.id);
 	if (!notebook) error(404, 'Notebook not found');
 
 	const blockIDs = notebook.blocks.map((b) => b.id);

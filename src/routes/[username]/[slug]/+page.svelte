@@ -29,7 +29,7 @@
 	}
 	let likes = $state.raw(data.notebook.likes);
 	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
-	let userLike = $derived(likes.find((l) => l.userId === data.authenticatedUser.id));
+	let userLike = $derived(likes.find((l) => l.userId === data.user?.id));
 	async function handleLike(count: number) {
 		const l = await like(notebook.id, count);
 		if (l) {
@@ -121,7 +121,7 @@
 			</button>
 		{/if}
 		<LikeButton
-			disabled={data.isAuthor}
+			disabled={data.isAuthor || !data.user}
 			likes={likeCount}
 			max={10}
 			{userLike}

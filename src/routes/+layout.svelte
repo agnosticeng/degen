@@ -5,9 +5,9 @@
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
 	import Search from '$lib/cmpnt/svg/search.svelte';
 	import '$lib/styles/main.css';
-	import type { ActionData } from './$types';
+	import type { ActionData, LayoutProps } from './$types';
 
-	let { children } = $props();
+	let { data, children }: LayoutProps = $props();
 
 	let openNewNotebook = $state(false);
 	let newNotebookModal = $state<ReturnType<typeof Modal>>();
@@ -17,10 +17,18 @@
 <header>
 	<a href="/"><Logo /></a>
 	<span>
-		<button class="new" onclick={() => (openNewNotebook = true)}>
-			<PlusCircle size="16" /> New
-		</button>
-		<button class="sign-in">Sign in</button>
+		{#if data.user}
+			<button class="new" onclick={() => (openNewNotebook = true)} disabled={!data.user.username}>
+				<PlusCircle size="16" /> New
+			</button>
+			<a href="/logout" data-sveltekit-preload-data="off">
+				<button class="sign-in">Log out</button>
+			</a>
+		{:else}
+			<a href="/login" data-sveltekit-preload-data="off">
+				<button class="sign-in">Sign in</button>
+			</a>
+		{/if}
 		<Search size={20} />
 	</span>
 </header>
