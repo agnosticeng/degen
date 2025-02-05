@@ -24,7 +24,7 @@
 							<h1><Pie /><span>{item.title}</span></h1>
 						</a>
 						<div class="author-info">
-							<h2>@{item.author.username}</h2>
+							<h2><a href="?author={item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
 						</div>
 					</div>

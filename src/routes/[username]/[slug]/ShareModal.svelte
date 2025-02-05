@@ -105,7 +105,7 @@
 			padding: 8px;
 			padding-right: 24px;
 			background-color: transparent;
-			border-radius: 4px;
+			border-radius: 5px;
 			border: 1px solid hsl(0, 0%, 15%);
 			color: inherit;
 			width: 100%;
@@ -129,7 +129,7 @@
 			background-repeat: no-repeat;
 			background-image: url($lib/cmpnt/svg/select-arrow-down.svg);
 			background-color: transparent;
-			border-radius: 4px;
+			border-radius: 5px;
 			border: 1px solid hsl(0, 0%, 15%);
 			color: inherit;
 		}

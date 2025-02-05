@@ -25,7 +25,7 @@
 
 	let { block = $bindable(), onDelete, readonly = false }: Props = $props();
 
-	let open = $state(!block.id);
+	let open = $state(!block.id || block.pinned);
 	let select = $state<ReturnType<typeof Select>>();
 	let anchor = $state<HTMLElement>();
 
@@ -113,6 +113,11 @@
 				{:else if error}
 					<span>{error}</span>
 				{/if}
+			</div>
+		{/if}
+		{#if loading && !open}
+			<div class="loading-container">
+				<Loader size="14" />
 			</div>
 		{/if}
 		{#if open || block.pinned}
@@ -287,6 +292,12 @@
 			max-height: 370px;
 			overflow: auto;
 		}
+	}
+
+	.loading-container {
+		padding-top: 5px;
+		display: flex;
+		align-items: center;
 	}
 
 	.input {

@@ -1,6 +1,7 @@
 import { blockRepository } from '$lib/server/repositories/blocks';
+import { NotFound } from '$lib/server/repositories/errors';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
-import type { User } from '$lib/server/repositories/users';
+import { userRepository, type User } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -11,9 +12,22 @@ const currentUser: User = {
 	createdAt: new Date(1738187245 * 1000)
 };
 
-export const load = (async (e) => {
-	return { notebooks: await notebookRepository.list() };
+export const load = (async ({ url }) => {
+	let id: User['id'] | undefined;
+	if (url.searchParams.has('author')) id = await getAuthorId(url.searchParams.get('author')!);
+
+	return { notebooks: await notebookRepository.list(id, currentUser.id) };
 }) satisfies PageServerLoad;
+
+async function getAuthorId(username: string): Promise<User['id'] | undefined> {
+	try {
+		const user = await userRepository.read(username);
+		return user.id;
+	} catch (e) {
+		if (e instanceof NotFound) return undefined;
+		console.error(e);
+	}
+}
 
 export const actions = {
 	create_notebook: async ({ request }) => {

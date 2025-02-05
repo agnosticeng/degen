@@ -106,7 +106,9 @@
 <header>
 	<div class="author">
 		<Profile handle={data.notebook.author.username} size={32} />
-		<div class="username">@{data.notebook.author.username}</div>
+		<div class="username">
+			<a href="/?author={data.notebook.author.username}">{data.notebook.author.username}</a>
+		</div>
 	</div>
 
 	<div class="notebook-actions">
@@ -156,7 +158,9 @@
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />
-	<div class="author">By @{data.notebook.author.username}</div>
+	<div class="author">
+		By <a href="/?author={data.notebook.author.username}">@{data.notebook.author.username}</a>
+	</div>
 	<div class="updated_at">
 		<PencilSimpleLine size="16" /><span title="Edited {notebook.updatedAt.toString()}">
 			Edited {lastUpdate.toDateString()}
@@ -317,5 +321,9 @@
 		&:is(:hover, :focus-within):not(:disabled) {
 			cursor: pointer;
 		}
+	}
+
+	a:hover {
+		color: hsl(224 60% 54%);
 	}
 </style>
