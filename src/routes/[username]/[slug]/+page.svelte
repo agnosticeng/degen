@@ -142,14 +142,14 @@
 						<Globe size="14" />Share...
 					</button>
 				</li>
-				<li>
-					<span class="separator"></span>
-				</li>
-				<li>
-					<button class="danger" disabled={!data.isAuthor} onclick={handleDelete}>
-						<Trash size="14" />Delete
-					</button>
-				</li>
+				{#if data.isAuthor}
+					<li><span class="separator"></span></li>
+					<li>
+						<button class="danger" onclick={handleDelete}>
+							<Trash size="14" />Delete
+						</button>
+					</li>
+				{/if}
 			</ul>
 		</Select>
 	</div>

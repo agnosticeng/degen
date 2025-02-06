@@ -156,12 +156,14 @@
 				{/if}
 			</button>
 		</li>
-		<li><span class="separator"></span></li>
-		<li role="menuitem">
-			<button class="danger" onclick={() => onDelete(block)} disabled={readonly}>
-				<Trash size="14" /> Delete
-			</button>
-		</li>
+		{#if !readonly}
+			<li><span class="separator"></span></li>
+			<li role="menuitem">
+				<button class="danger" onclick={() => onDelete(block)} disabled={readonly}>
+					<Trash size="14" /> Delete
+				</button>
+			</li>
+		{/if}
 	</ul>
 </Select>
 
