@@ -1,4 +1,5 @@
 @import 'normalize.css' layer(normalize);
+@import '$lib/markdown/styles/tokens.css';
 
 @layer normalize, base, app;
 
