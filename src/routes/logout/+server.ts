@@ -1,4 +1,3 @@
-import { auth0 } from '$lib/server/oauth';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -8,7 +7,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	if (!idToken) error(401);
 
 	try {
-		await auth0(url.origin).revokeToken(idToken);
+		// await auth0(url.origin).revokeToken(idToken);
 
 		cookies.delete('id_token', { path: '/' });
 	} catch (e) {

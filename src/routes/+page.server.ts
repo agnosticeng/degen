@@ -4,6 +4,7 @@ import { notebookRepository } from '$lib/server/repositories/notebooks';
 import { UserUsernameSpecification } from '$lib/server/repositories/specifications';
 import { userRepository, type User } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
+import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load = (async ({ url }) => {
@@ -23,6 +24,39 @@ async function getAuthorId(username: string): Promise<User['id'] | undefined> {
 }
 
 export const actions = {
+	create_user: async ({ request, locals, cookies }) => {
+		const idToken = cookies.get('id_token') ?? null;
+		if (!locals.authenticated || !idToken) return fail(401);
+
+		let externalId: string;
+		try {
+			externalId = decodeJwt(idToken).sub ?? '';
+			if (!externalId) throw new Error('Empty token sub');
+		} catch {
+			cookies.delete('id_token', { path: '/' });
+			return fail(400, { message: 'Invalid request' });
+		}
+
+		const data = await request.formData();
+		const username = data.get('username');
+
+		if (!username || typeof username !== 'string')
+			return fail(400, { message: 'Invalid username' });
+
+		try {
+			const user = await userRepository.create({ externalId, username });
+			locals.user = user;
+		} catch (e) {
+			if (e instanceof Error && 'code' in e && e.code === 'SQLITE_CONSTRAINT') {
+				return fail(400, { message: 'Username not available' });
+			}
+
+			console.error(e);
+			return fail(400, { message: 'User not created' });
+		}
+
+		redirect(303, `/`);
+	},
 	create_notebook: async ({ request, locals }) => {
 		if (!locals.user) return fail(401);
 
