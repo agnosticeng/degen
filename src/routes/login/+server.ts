@@ -7,7 +7,8 @@ export const GET: RequestHandler = async (event) => {
 	const codeVerifier = generateCodeVerifier();
 	const url = auth0(event.url.origin).createAuthorizationURL(state, codeVerifier, [
 		'openid',
-		'profile'
+		'profile',
+		'offline_access'
 	]);
 
 	event.cookies.set('oauth_state', state, {

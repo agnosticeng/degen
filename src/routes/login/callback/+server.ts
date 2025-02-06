@@ -48,6 +48,16 @@ export const GET: RequestHandler = async (event) => {
 		expires: tokens.accessTokenExpiresAt()
 	});
 
+	if (tokens.hasRefreshToken()) {
+		event.cookies.set('refresh_token', tokens.refreshToken(), {
+			httpOnly: true,
+			path: '/',
+			secure: import.meta.env.PROD,
+			sameSite: 'lax',
+			expires: tokens.accessTokenExpiresAt()
+		});
+	}
+
 	return new Response(null, {
 		status: 302,
 		headers: { Location: '/' }
