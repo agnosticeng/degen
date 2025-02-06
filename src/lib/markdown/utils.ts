@@ -1,12 +1,13 @@
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'dompurify';
 import { Marked, type MarkedExtension, type Renderer } from 'marked';
 
 export async function transform(
 	markdown: string,
 	{
 		walkTokens,
+		purify = true,
 		...renderer
-	}: Partial<Renderer> & { walkTokens?: MarkedExtension['walkTokens'] } = {}
+	}: Partial<Renderer> & { walkTokens?: MarkedExtension['walkTokens']; purify?: boolean } = {}
 ) {
 	const marked = new Marked({
 		async: true,
@@ -15,7 +16,11 @@ export async function transform(
 		gfm: true,
 		hooks: {
 			postprocess(html) {
-				return DOMPurify.sanitize(html);
+				if (purify) {
+					return DOMPurify().sanitize(html);
+				}
+
+				return html;
 			}
 		}
 	});

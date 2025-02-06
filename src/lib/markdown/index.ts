@@ -1,12 +1,13 @@
 import { codeToHtml, createCssVariablesTheme } from 'shiki';
 import { transform } from './utils';
 
+const theme = createCssVariablesTheme({
+	name: 'css-variables',
+	variablePrefix: '--hl-'
+});
+
 export async function renderMarkdown(body: string) {
 	const codes = new Map<string, string>();
-	const theme = createCssVariablesTheme({
-		name: 'css-variables',
-		variablePrefix: '--hl-'
-	});
 
 	return await transform(body, {
 		async walkTokens(token) {
