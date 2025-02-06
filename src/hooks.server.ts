@@ -5,7 +5,7 @@ import {
 } from '$lib/server/cookies';
 import { auth0, verifyJWT } from '$lib/server/oauth';
 import { NotFound } from '$lib/server/repositories/errors';
-import { UserExternalIdSpecification } from '$lib/server/repositories/specifications';
+import { withExternalId } from '$lib/server/repositories/specifications/users';
 import { userRepository } from '$lib/server/repositories/users';
 import type { Handle } from '@sveltejs/kit';
 
@@ -32,12 +32,10 @@ export const handle = async function ({ event, resolve }) {
 			setTokensIntoCookies(event.cookies, tokens);
 		}
 
-		event.locals.user = await userRepository
-			.read(new UserExternalIdSpecification(decoded.sub!))
-			.catch((e) => {
-				if (e instanceof NotFound) return null;
-				throw e;
-			});
+		event.locals.user = await userRepository.read(withExternalId(decoded.sub!)).catch((e) => {
+			if (e instanceof NotFound) return null;
+			throw e;
+		});
 	} catch (e) {
 		console.error(e);
 

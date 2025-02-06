@@ -1,22 +1,7 @@
-import { and, eq, isNotNull, type SQL } from 'drizzle-orm';
-import { users } from '../db/schema';
-import type { User } from './users';
-
-export const spec_kind = Symbol('spec_kind');
-
-export interface Specification<T> {
-	readonly [spec_kind]: string;
-	satisfiedBy(entity: T): boolean;
-}
-
-export interface DrizzleSpecification<T> extends Specification<T> {
-	readonly [spec_kind]: 'Drizzle';
-	toQuery(): SQL | undefined;
-}
-
-export function isDrizzleSpecification<T>(spec: Specification<T>): spec is DrizzleSpecification<T> {
-	return spec[spec_kind] === 'Drizzle';
-}
+import { and, eq, isNotNull } from 'drizzle-orm';
+import { spec_kind, type DrizzleSpecification, type Specification } from '.';
+import { users } from '../../db/schema';
+import type { User } from '../users';
 
 export class UserIdSpecification implements DrizzleSpecification<User> {
 	constructor(private id: User['id']) {}
@@ -34,8 +19,12 @@ export class UserIdSpecification implements DrizzleSpecification<User> {
 	}
 }
 
+export function withId(id: User['id']): Specification<User> {
+	return new UserIdSpecification(id);
+}
+
 export class UserUsernameSpecification implements DrizzleSpecification<User> {
-	constructor(private username: NonNullable<User['username']>) {}
+	constructor(private username: User['username']) {}
 
 	get [spec_kind]() {
 		return 'Drizzle' as const;
@@ -48,6 +37,10 @@ export class UserUsernameSpecification implements DrizzleSpecification<User> {
 	toQuery() {
 		return and(isNotNull(users.username), eq(users.username, this.username));
 	}
+}
+
+export function withUsername(username: User['username']): Specification<User> {
+	return new UserUsernameSpecification(username);
 }
 
 export class UserExternalIdSpecification implements DrizzleSpecification<User> {
@@ -64,4 +57,8 @@ export class UserExternalIdSpecification implements DrizzleSpecification<User> {
 	toQuery() {
 		return eq(users.externalId, this.externalId);
 	}
+}
+
+export function withExternalId(externalId: User['externalId']): Specification<User> {
+	return new UserExternalIdSpecification(externalId);
 }

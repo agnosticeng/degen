@@ -1,8 +1,8 @@
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { NotFound } from '$lib/server/repositories/errors';
-import { notebookRepository } from '$lib/server/repositories/notebooks';
-import { UserUsernameSpecification } from '$lib/server/repositories/specifications';
+import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
+import { withUsername } from '$lib/server/repositories/specifications/users';
 import { userRepository, type User } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
@@ -16,7 +16,7 @@ export const load = (async ({ url }) => {
 
 async function getAuthorId(username: string): Promise<User['id'] | undefined> {
 	try {
-		const user = await userRepository.read(new UserUsernameSpecification(username));
+		const user = await userRepository.read(withUsername(username));
 		return user.id;
 	} catch (e) {
 		if (e instanceof NotFound) return undefined;
@@ -66,12 +66,21 @@ export const actions = {
 
 		if (!title || typeof title !== 'string') return fail(400, { message: 'Invalid title' });
 
-		const notebook = await notebookRepository.create({
-			title: title,
-			slug: title.toLowerCase().replace(/\s+/g, '-'),
-			authorId: locals.user.id,
-			visibility: 'private'
-		});
+		let notebook: Notebook;
+		try {
+			notebook = await notebookRepository.create({
+				title: title,
+				slug: title.toLowerCase().replace(/\s+/g, '-'),
+				authorId: locals.user.id,
+				visibility: 'private'
+			});
+		} catch (e) {
+			if (e instanceof Error && 'code' in e && e.code === 'SQLITE_CONSTRAINT') {
+				return fail(400, { message: 'Invalid name' });
+			}
+			console.error(e);
+			return fail(500, { message: 'Something went wrong, please try again.' });
+		}
 
 		await blockRepository.batchCreate([
 			{
