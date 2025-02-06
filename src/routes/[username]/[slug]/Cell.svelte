@@ -115,7 +115,7 @@
 				{/if}
 			</div>
 		{/if}
-		{#if loading && !open}
+		{#if loading && !open && !block.pinned}
 			<div class="loading-container">
 				<Loader size="14" />
 			</div>
@@ -183,6 +183,9 @@
 		flex-direction: row;
 		align-items: stretch;
 
+		opacity: 0;
+		transition: opacity 100ms ease-in;
+
 		& button {
 			display: flex;
 			align-items: start;
@@ -222,7 +225,9 @@
 			display: none;
 
 			@container (max-width: 40px) {
-				display: block;
+				& {
+					display: block;
+				}
 			}
 		}
 
@@ -233,11 +238,8 @@
 			justify-content: center;
 			border-top-left-radius: 3px;
 			border-bottom-left-radius: 3px;
+			background-color: hsl(0, 0%, 15%);
 		}
-	}
-
-	article:is(:hover) .more {
-		background-color: hsl(0, 0%, 15%);
 	}
 
 	article:is(:focus-within) .more {
@@ -247,6 +249,10 @@
 	article:is(:hover, :focus-within) :global(.cm-editor) {
 		border-top-left-radius: 0;
 		border-bottom-left-radius: 0;
+	}
+
+	article:is(:hover, :focus-within) .gutter {
+		opacity: 1;
 	}
 
 	article:is(:hover) .output {
@@ -394,19 +400,6 @@
 					color: hsl(0, 0%, 65%);
 				}
 			}
-		}
-	}
-
-	button {
-		appearance: none;
-		outline: none;
-		border: none;
-		background-color: transparent;
-		color: currentColor;
-		padding: 0;
-
-		&:is(:hover, :focus-within):not(:disabled) {
-			cursor: pointer;
 		}
 	}
 </style>

@@ -4,6 +4,7 @@
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
 	import Search from '$lib/cmpnt/svg/search.svelte';
+	import '$lib/styles/main.css';
 	import type { ActionData } from './$types';
 
 	let { children } = $props();
@@ -70,28 +71,6 @@
 <footer>© 2025 Agnostic</footer>
 
 <style>
-	:global(html, body) {
-		background: hsl(0, 0%, 5%);
-		color: hsl(0, 0%, 86%);
-		margin: 0;
-	}
-
-	:global(*) {
-		box-sizing: border-box;
-		font-family:
-			system-ui,
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			Roboto,
-			sans-serif;
-	}
-
-	:global(a) {
-		color: inherit;
-		text-decoration: none;
-	}
-
 	header {
 		border-bottom: 1px solid hsl(0, 0%, 20%);
 		padding: 0 20px;

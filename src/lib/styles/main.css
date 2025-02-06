@@ -1,0 +1,59 @@
+@import 'normalize.css' layer(normalize);
+@import '$lib/markdown/styles/tokens.css';
+
+@layer normalize, base, app;
+
+@layer app {
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	button {
+		appearance: none;
+		outline: none;
+		border: none;
+		background-color: transparent;
+		color: currentColor;
+		padding: 0;
+
+		&:is(:hover, :focus-within):not(:disabled) {
+			cursor: pointer;
+		}
+	}
+}
+
+@layer base {
+	html {
+		color-scheme: dark only;
+	}
+
+	*,
+	*:after,
+	*:before {
+		box-sizing: border-box;
+	}
+
+	html,
+	body {
+		height: 100%;
+		width: 100%;
+	}
+
+	body {
+		background: light-dark(white, hsl(0, 0%, 5%));
+		color: light-dark(canvasText, hsl(0, 0%, 86%));
+		font-family:
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			'Segoe UI',
+			Roboto,
+			sans-serif;
+
+		font-synthesis: none;
+		text-rendering: optimizeLegibility;
+		/* -webkit-font-smoothing: antialiased; */
+		/* -moz-osx-font-smoothing: grayscale; */
+	}
+}

@@ -323,19 +323,6 @@
 		}
 	}
 
-	button {
-		appearance: none;
-		outline: none;
-		border: none;
-		background-color: transparent;
-		color: currentColor;
-		padding: 0;
-
-		&:is(:hover, :focus-within):not(:disabled) {
-			cursor: pointer;
-		}
-	}
-
 	a:hover {
 		color: hsl(224 60% 54%);
 	}

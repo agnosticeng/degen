@@ -8,9 +8,10 @@
 		anchor?: HTMLElement;
 		placement?: Placement;
 		children?: Snippet;
+		onClose?: () => void;
 	}
 
-	let { anchor, placement = 'bottom-start', children }: Props = $props();
+	let { anchor, placement = 'bottom-start', children, onClose }: Props = $props();
 
 	let opened = $state(false);
 	let dropdown = $state<HTMLElement>();
@@ -28,6 +29,7 @@
 
 	export function close() {
 		opened = false;
+		onClose?.();
 	}
 
 	export function open(target?: HTMLElement) {

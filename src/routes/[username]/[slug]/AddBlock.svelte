@@ -11,15 +11,17 @@
 
 	let { onNewBlock }: Props = $props();
 	let select: ReturnType<typeof Select>;
+
+	let isOpened = $state(false);
 </script>
 
-<div>
-	<button class="add-block" onclick={(e) => select.open(e.currentTarget)}>
+<div class:opened={isOpened}>
+	<button class="add-block" onclick={(e) => (select.open(e.currentTarget), (isOpened = true))}>
 		<Plus size="14" />
 	</button>
 </div>
 
-<Select bind:this={select} placement="right-start">
+<Select bind:this={select} placement="right-start" onClose={() => (isOpened = false)}>
 	<ul role="menu">
 		<li role="menuitem">
 			<button
@@ -49,19 +51,15 @@
 		height: 20px;
 		margin: 5px 0;
 		position: relative;
+
+		opacity: 0;
+		transition: opacity 100ms ease-in;
 	}
 
-	button {
-		appearance: none;
-		outline: none;
-		border: none;
-		background-color: transparent;
-		color: currentColor;
-		padding: 0;
-
-		&:is(:hover, :focus-within):not(:disabled) {
-			cursor: pointer;
-		}
+	div:is(:hover, .opened),
+	:global(article:is(:hover, :focus-within)) + div,
+	div:has(+ :global(article:is(:hover, :focus-within))) {
+		opacity: 1;
 	}
 
 	.add-block {
