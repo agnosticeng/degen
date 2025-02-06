@@ -115,7 +115,7 @@
 				{/if}
 			</div>
 		{/if}
-		{#if loading && !open}
+		{#if loading && !open && !block.pinned}
 			<div class="loading-container">
 				<Loader size="14" />
 			</div>
