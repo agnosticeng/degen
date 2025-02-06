@@ -49,19 +49,15 @@
 		height: 20px;
 		margin: 5px 0;
 		position: relative;
+
+		opacity: 0;
+		transition: opacity 100ms ease-in;
 	}
 
-	button {
-		appearance: none;
-		outline: none;
-		border: none;
-		background-color: transparent;
-		color: currentColor;
-		padding: 0;
-
-		&:is(:hover, :focus-within):not(:disabled) {
-			cursor: pointer;
-		}
+	div:hover,
+	:global(article:is(:hover, :focus-within)) + div,
+	div:has(+ :global(article:is(:hover, :focus-within))) {
+		opacity: 1;
 	}
 
 	.add-block {

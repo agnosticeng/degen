@@ -140,19 +140,6 @@
 		}
 	}
 
-	button {
-		appearance: none;
-		outline: none;
-		border: none;
-		background-color: transparent;
-		color: currentColor;
-		padding: 0;
-
-		&:is(:hover, :focus-within):not(:disabled) {
-			cursor: pointer;
-		}
-	}
-
 	form div.actions {
 		display: flex;
 		align-items: center;
