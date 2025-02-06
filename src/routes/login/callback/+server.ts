@@ -1,3 +1,4 @@
+import { setTokensIntoCookies } from '$lib/server/cookies';
 import { auth0 } from '$lib/server/oauth';
 import { userRepository } from '$lib/server/repositories/users';
 import type { RequestHandler } from '@sveltejs/kit';
@@ -40,23 +41,7 @@ export const GET: RequestHandler = async (event) => {
 
 	await userRepository.create(claims);
 
-	event.cookies.set('id_token', tokens.idToken(), {
-		httpOnly: true,
-		path: '/',
-		secure: import.meta.env.PROD,
-		sameSite: 'lax',
-		expires: tokens.accessTokenExpiresAt()
-	});
-
-	if (tokens.hasRefreshToken()) {
-		event.cookies.set('refresh_token', tokens.refreshToken(), {
-			httpOnly: true,
-			path: '/',
-			secure: import.meta.env.PROD,
-			sameSite: 'lax',
-			expires: tokens.accessTokenExpiresAt()
-		});
-	}
+	setTokensIntoCookies(event.cookies, tokens);
 
 	return new Response(null, {
 		status: 302,

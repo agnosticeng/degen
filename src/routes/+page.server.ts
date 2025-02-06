@@ -1,3 +1,4 @@
+import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { NotFound } from '$lib/server/repositories/errors';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
@@ -25,7 +26,7 @@ async function getAuthorId(username: string): Promise<User['id'] | undefined> {
 
 export const actions = {
 	create_user: async ({ request, locals, cookies }) => {
-		const idToken = cookies.get('id_token') ?? null;
+		const { idToken } = getTokensFromCookies(cookies);
 		if (!locals.authenticated || !idToken) return fail(401);
 
 		let externalId: string;
@@ -33,7 +34,7 @@ export const actions = {
 			externalId = decodeJwt(idToken).sub ?? '';
 			if (!externalId) throw new Error('Empty token sub');
 		} catch {
-			cookies.delete('id_token', { path: '/' });
+			deleteTokensFromCookies(cookies);
 			return fail(400, { message: 'Invalid request' });
 		}
 

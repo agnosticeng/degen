@@ -1,3 +1,8 @@
+import {
+	deleteTokensFromCookies,
+	getTokensFromCookies,
+	setTokensIntoCookies
+} from '$lib/server/cookies';
 import { auth0, verifyJWT } from '$lib/server/oauth';
 import { NotFound } from '$lib/server/repositories/errors';
 import { UserExternalIdSpecification } from '$lib/server/repositories/specifications';
@@ -7,8 +12,7 @@ import type { Handle } from '@sveltejs/kit';
 const TWO_HOURS = 1000 * 60 * 60 * 2;
 
 export const handle = async function ({ event, resolve }) {
-	const idToken = event.cookies.get('id_token') ?? null;
-	const refreshToken = event.cookies.get('refresh_token') ?? null;
+	const { idToken, refreshToken } = getTokensFromCookies(event.cookies);
 
 	if (idToken === null) {
 		event.locals.user = null;
@@ -25,24 +29,7 @@ export const handle = async function ({ event, resolve }) {
 
 		if (Date.now() >= exp - TWO_HOURS && refreshToken) {
 			const tokens = await auth0(event.url.origin).refreshAccessToken(refreshToken);
-
-			event.cookies.set('id_token', tokens.idToken(), {
-				httpOnly: true,
-				path: '/',
-				secure: import.meta.env.PROD,
-				sameSite: 'lax',
-				expires: tokens.accessTokenExpiresAt()
-			});
-
-			if (tokens.hasRefreshToken()) {
-				event.cookies.set('refresh_token', tokens.refreshToken(), {
-					httpOnly: true,
-					path: '/',
-					secure: import.meta.env.PROD,
-					sameSite: 'lax',
-					expires: tokens.accessTokenExpiresAt()
-				});
-			}
+			setTokensIntoCookies(event.cookies, tokens);
 		}
 
 		event.locals.user = await userRepository
@@ -56,7 +43,7 @@ export const handle = async function ({ event, resolve }) {
 
 		event.locals.authenticated = false;
 		event.locals.user = null;
-		event.cookies.delete('id_token', { path: '/' });
+		deleteTokensFromCookies(event.cookies);
 	}
 
 	return resolve(event);
