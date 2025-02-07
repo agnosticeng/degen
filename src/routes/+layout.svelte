@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { applyAction, enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
@@ -27,7 +28,7 @@
 				<button class="sign-in">Log out</button>
 			</a>
 		{:else}
-			<a href="/login" data-sveltekit-preload-data="off">
+			<a href="/login?redirectTo={page.url.pathname}" data-sveltekit-preload-data="off">
 				<button class="sign-in">Sign in</button>
 			</a>
 		{/if}
