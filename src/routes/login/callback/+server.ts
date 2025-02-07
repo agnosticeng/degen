@@ -1,7 +1,7 @@
 import { setTokensIntoCookies } from '$lib/server/cookies';
 import { auth0 } from '$lib/server/oauth';
 import type { RequestHandler } from '@sveltejs/kit';
-import { decodeIdToken, type OAuth2Tokens } from 'arctic';
+import { type OAuth2Tokens } from 'arctic';
 
 export const GET: RequestHandler = async (event) => {
 	const storedState = event.cookies.get('oauth_state') ?? null;
@@ -34,10 +34,6 @@ export const GET: RequestHandler = async (event) => {
 	event.cookies.delete('oauth_state', { path: '/' });
 	event.cookies.delete('code_verifier', { path: '/' });
 
-	const claims = parseClaims(decodeIdToken(tokens.idToken()));
-
-	if (!claims) return new Response('Please restart the process.', { status: 400 });
-
 	setTokensIntoCookies(event.cookies, tokens);
 
 	return new Response(null, {
@@ -45,14 +41,3 @@ export const GET: RequestHandler = async (event) => {
 		headers: { Location: '/' }
 	});
 };
-
-function parseClaims(claims: unknown) {
-	if (!claims || typeof claims !== 'object') return null;
-	const username =
-		'nickname' in claims && typeof claims.nickname === 'string' ? claims.nickname : '';
-	if (!username) return null;
-	const externalId = 'sub' in claims && typeof claims.sub === 'string' ? claims.sub : '';
-	if (!externalId) return null;
-
-	return { username, externalId };
-}
