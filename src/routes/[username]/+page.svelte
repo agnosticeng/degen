@@ -2,6 +2,7 @@
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
+	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import type { PageProps } from './$types';
 
 	const trends = ['DeFi', 'Stablecoin', 'Base', 'Polymarket'];
@@ -9,8 +10,15 @@
 </script>
 
 <svelte:head>
-	<title>Degen</title>
+	<title>Degen • {data.author.username}</title>
 </svelte:head>
+
+<header>
+	<div class="author">
+		<Profile handle={data.author.username} size={32} />
+		<div class="username">{data.author.username}</div>
+	</div>
+</header>
 
 <section class="trends">
 	{#each trends as trend}
@@ -28,37 +36,52 @@
 							<h1><Pie /><span>{item.title}</span></h1>
 						</a>
 						<div class="author-info">
+							{#if item.author.id === data.user?.id}
+								<Visibility visibility={item.visibility} />
+							{/if}
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
 						</div>
 					</div>
 				</div>
 
-				<div class="likes">
-					<span>{item.likes}</span>
-					<Heart size={16} />
-				</div>
+				<div class="likes"><span>{item.likes}</span><Heart size={16} /></div>
 			</li>
 		{/each}
 	</ul>
 </section>
 
 <style>
-	button {
-		font-size: 14px;
-		font-weight: 500;
-		border: none;
-		cursor: pointer;
-		padding: 8px 16px;
-		color: hsl(0, 0%, 80%);
-		border-radius: 5px;
-		background: hsl(0, 0%, 5%);
-		transition: all 0.2s ease;
-	}
+	header {
+		width: 100%;
+		max-width: 1024px;
+		margin: 16px auto 8px;
+		padding: 0 20px;
 
-	button:hover {
-		background: hsl(0, 0%, 8%);
-		color: hsl(0, 0%, 90%);
+		display: flex;
+		gap: 6px;
+
+		& > div.author {
+			flex: 1;
+			overflow: hidden;
+
+			display: flex;
+			align-items: center;
+			gap: 8px;
+
+			& > :global(div.avatar) {
+				flex-shrink: 0;
+			}
+
+			& > div.username {
+				flex: 1;
+				font-weight: 500;
+
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				overflow: hidden;
+			}
+		}
 	}
 
 	.trends {
@@ -75,17 +98,17 @@
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
-	}
 
-	.trend-button:hover {
-		background: transparent;
-		color: hsl(0, 0%, 90%);
-		border-color: hsl(0, 0%, 30%);
-	}
+		&:hover {
+			background-color: transparent;
+			color: hsl(0, 0%, 90%);
+			border-color: hsl(0, 0%, 30%);
+		}
 
-	i {
-		font-variant: normal;
-		color: hsl(0, 0%, 33%);
+		& i {
+			font-variant: normal;
+			color: hsl(0, 0%, 33%);
+		}
 	}
 
 	ul {
@@ -103,7 +126,8 @@
 	li {
 		width: 100%;
 		display: flex;
-		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
 		border: 1px solid hsl(0, 0%, 20%);
 		height: 100px;
 		padding: 20px;
@@ -113,6 +137,7 @@
 	.item-content {
 		display: flex;
 		align-items: center;
+		flex: 1;
 	}
 
 	.item-info {
@@ -154,5 +179,22 @@
 		display: flex;
 		align-items: center;
 		gap: 5px;
+	}
+
+	button {
+		font-size: 14px;
+		font-weight: 500;
+		border: none;
+		cursor: pointer;
+		padding: 8px 16px;
+		color: hsl(0, 0%, 80%);
+		border-radius: 5px;
+		background-color: transparent;
+		transition: all 0.2s ease;
+
+		&:hover {
+			background-color: hsl(0, 0%, 8%);
+			color: hsl(0, 0%, 90%);
+		}
 	}
 </style>

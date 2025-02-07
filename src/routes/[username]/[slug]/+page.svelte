@@ -8,15 +8,15 @@
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
+	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Cell from './Cell.svelte';
 	import LikeButton from './LikeButton.svelte';
-	import ShareModal from './ShareModal.svelte';
-	import Visibility from './Visibility.svelte';
 	import { deleteNotebook, like, updateBlocks } from './requests';
+	import ShareModal from './ShareModal.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -107,7 +107,7 @@
 	<div class="author">
 		<Profile handle={data.notebook.author.username} size={32} />
 		<div class="username">
-			<a href="/?author={data.notebook.author.username}">{data.notebook.author.username}</a>
+			<a href="/{data.notebook.author.username}">{data.notebook.author.username}</a>
 		</div>
 	</div>
 
@@ -164,7 +164,7 @@
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />
 	<div class="author">
-		By <a href="/?author={data.notebook.author.username}">@{data.notebook.author.username}</a>
+		By <a href="/{data.notebook.author.username}">@{data.notebook.author.username}</a>
 	</div>
 	<div class="updated_at">
 		<PencilSimpleLine size="16" /><span title="Edited {notebook.updatedAt.toString()}">
