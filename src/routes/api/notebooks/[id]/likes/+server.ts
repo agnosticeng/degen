@@ -4,8 +4,6 @@ import { notebookRepository } from '$lib/server/repositories/notebooks';
 import { error, isHttpError, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-const currentUser = { id: 1 };
-
 export const POST: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.user) error(401);
 
@@ -16,7 +14,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
 	try {
 		const notebook = await notebookRepository.read(notebookId, locals.user.id);
-		if (notebook.authorId === currentUser.id)
+		if (notebook.authorId === locals.user.id)
 			error(403, { message: 'User cannot like his own notebook' });
 
 		const like = await likeRepository.like(notebookId, locals.user.id, body.count);
