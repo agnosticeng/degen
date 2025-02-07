@@ -1,6 +1,5 @@
 import { setTokensIntoCookies } from '$lib/server/cookies';
 import { auth0 } from '$lib/server/oauth';
-import { userRepository } from '$lib/server/repositories/users';
 import type { RequestHandler } from '@sveltejs/kit';
 import { decodeIdToken, type OAuth2Tokens } from 'arctic';
 
@@ -38,8 +37,6 @@ export const GET: RequestHandler = async (event) => {
 	const claims = parseClaims(decodeIdToken(tokens.idToken()));
 
 	if (!claims) return new Response('Please restart the process.', { status: 400 });
-
-	await userRepository.create(claims);
 
 	setTokensIntoCookies(event.cookies, tokens);
 
