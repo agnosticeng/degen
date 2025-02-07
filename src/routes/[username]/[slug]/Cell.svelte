@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { MarkdownEditor } from '$lib/cmpnt/MarkdownEditor';
 	import Select from '$lib/cmpnt/Select.svelte';
 	import SqlEditor from '$lib/cmpnt/SQLEditor.svelte';
@@ -122,16 +121,16 @@
 		{/if}
 		{#if open || block.pinned}
 			<div class="input" transition:slide={{ duration: 200 }}>
-				<button onclick={handleRun} class:dirty disabled={loading}>
+				<button onclick={handleRun} class:dirty disabled={loading || readonly}>
 					{#if loading}
 						<Loader size="14" />
-					{:else}
+					{:else if !readonly}
 						<Play size="14" />
 					{/if}
 				</button>
-				{#if block.type === 'sql' && browser}
+				{#if block.type === 'sql'}
 					<SqlEditor bind:value={block.content} onRun={() => handleRun()} {readonly} />
-				{:else if block.type === 'markdown' && browser}
+				{:else if block.type === 'markdown'}
 					<MarkdownEditor bind:value={block.content} onRun={() => handleRun()} {readonly} />
 				{/if}
 			</div>
@@ -156,12 +155,14 @@
 				{/if}
 			</button>
 		</li>
-		<li><span class="separator"></span></li>
-		<li role="menuitem">
-			<button class="danger" onclick={() => onDelete(block)} disabled={readonly}>
-				<Trash size="14" /> Delete
-			</button>
-		</li>
+		{#if !readonly}
+			<li><span class="separator"></span></li>
+			<li role="menuitem">
+				<button class="danger" onclick={() => onDelete(block)} disabled={readonly}>
+					<Trash size="14" /> Delete
+				</button>
+			</li>
+		{/if}
 	</ul>
 </Select>
 
@@ -169,6 +170,10 @@
 	article {
 		position: relative;
 		min-height: 30px;
+	}
+
+	article + :global(article) {
+		margin-top: 20px;
 	}
 
 	.gutter {
@@ -349,12 +354,12 @@
 				fill: currentColor;
 			}
 
-			&:hover {
+			&:not(:disabled):hover {
 				background-color: hsl(214, 14%, 23%);
 				color: hsl(0, 0%, 90%);
 			}
 
-			&:active {
+			&:not(:disabled):active {
 				background-color: hsl(214, 14%, 26%);
 			}
 		}

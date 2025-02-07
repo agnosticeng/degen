@@ -59,19 +59,25 @@
 					Copy
 				</button>
 			</div>
-			<h3>Access</h3>
-			<label class="access">
-				<span>Visibility</span>
-				<select name="visibility" value={notebook.visibility} required {disabled}>
-					<option value="public">Public</option>
-					<option value="unlisted">Unlisted</option>
-					<option value="private">Private</option>
-				</select>
-			</label>
-			<div class="actions">
-				<button type="button" onclick={() => modal?.close()}>Cancel</button>
-				<button type="submit" {disabled}>Save</button>
-			</div>
+			{#if !disabled}
+				<h3>Access</h3>
+				<label class="access">
+					<span>Visibility</span>
+					<select name="visibility" value={notebook.visibility} required {disabled}>
+						<option value="public">Public</option>
+						<option value="unlisted">Unlisted</option>
+						<option value="private">Private</option>
+					</select>
+				</label>
+				<div class="actions">
+					<button type="button" onclick={() => modal?.close()}>Cancel</button>
+					<button type="submit" {disabled}>Save</button>
+				</div>
+			{:else}
+				<div class="actions">
+					<button type="button" onclick={() => modal?.close()}>Close</button>
+				</div>
+			{/if}
 		</form>
 	</Modal>
 {/if}
@@ -119,8 +125,6 @@
 		align-items: center;
 		font-size: 14px;
 
-		margin-bottom: 12px;
-
 		select {
 			appearance: none;
 			outline: 0px;
@@ -145,6 +149,7 @@
 		align-items: center;
 		justify-content: end;
 		gap: 8px;
+		margin-top: 12px;
 	}
 
 	button {

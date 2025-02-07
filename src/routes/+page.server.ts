@@ -1,27 +1,22 @@
+import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { NotFound } from '$lib/server/repositories/errors';
-import { notebookRepository } from '$lib/server/repositories/notebooks';
+import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
+import { withUsername } from '$lib/server/repositories/specifications/users';
 import { userRepository, type User } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
+import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
-
-const currentUser: User = {
-	id: 1,
-	externalId: 'azertyuio',
-	username: 'yannamsellem',
-	createdAt: new Date(1738187245 * 1000)
-};
 
 export const load = (async ({ url }) => {
 	let id: User['id'] | undefined;
 	if (url.searchParams.has('author')) id = await getAuthorId(url.searchParams.get('author')!);
-
-	return { notebooks: await notebookRepository.list(id, currentUser.id) };
+	return { notebooks: await notebookRepository.list(id) };
 }) satisfies PageServerLoad;
 
 async function getAuthorId(username: string): Promise<User['id'] | undefined> {
 	try {
-		const user = await userRepository.read(username);
+		const user = await userRepository.read(withUsername(username));
 		return user.id;
 	} catch (e) {
 		if (e instanceof NotFound) return undefined;
@@ -30,22 +25,66 @@ async function getAuthorId(username: string): Promise<User['id'] | undefined> {
 }
 
 export const actions = {
-	create_notebook: async ({ request }) => {
+	create_user: async ({ request, locals, cookies }) => {
+		const { idToken } = getTokensFromCookies(cookies);
+		if (!locals.authenticated || !idToken) return fail(401);
+
+		let externalId: string;
+		try {
+			externalId = decodeJwt(idToken).sub ?? '';
+			if (!externalId) throw new Error('Empty token sub');
+		} catch {
+			deleteTokensFromCookies(cookies);
+			return fail(400, { message: 'Invalid request' });
+		}
+
+		const data = await request.formData();
+		const username = data.get('username');
+
+		if (!username || typeof username !== 'string')
+			return fail(400, { message: 'Invalid username' });
+
+		try {
+			const user = await userRepository.create({ externalId, username });
+			locals.user = user;
+		} catch (e) {
+			if (e instanceof Error && 'code' in e && e.code === 'SQLITE_CONSTRAINT') {
+				return fail(400, { message: 'Username not available' });
+			}
+
+			console.error(e);
+			return fail(400, { message: 'User not created' });
+		}
+
+		redirect(303, `/`);
+	},
+	create_notebook: async ({ request, locals }) => {
+		if (!locals.user) return fail(401);
+
 		const data = await request.formData();
 		const title = data.get('title');
 
 		if (!title || typeof title !== 'string') return fail(400, { message: 'Invalid title' });
 
-		const notebook = await notebookRepository.create({
-			title: title,
-			slug: title.toLowerCase().replace(/\s+/g, '-'),
-			authorId: currentUser.id,
-			visibility: 'private'
-		});
+		let notebook: Notebook;
+		try {
+			notebook = await notebookRepository.create({
+				title: title,
+				slug: title.toLowerCase().replace(/\s+/g, '-'),
+				authorId: locals.user.id,
+				visibility: 'private'
+			});
+		} catch (e) {
+			if (e instanceof Error && 'code' in e && e.code === 'SQLITE_CONSTRAINT') {
+				return fail(400, { message: 'Invalid name' });
+			}
+			console.error(e);
+			return fail(500, { message: 'Something went wrong, please try again.' });
+		}
 
 		await blockRepository.batchCreate([
 			{
-				content: `# ${currentUser.username}/${notebook.title}`,
+				content: `# ${locals.user.username}/${notebook.title}`,
 				notebookId: notebook.id,
 				pinned: false,
 				position: 0,
@@ -53,6 +92,6 @@ export const actions = {
 			}
 		]);
 
-		redirect(303, `/${currentUser.username}/${notebook.slug}`);
+		redirect(303, `/${locals.user.username}/${notebook.slug}`);
 	}
 } satisfies Actions;

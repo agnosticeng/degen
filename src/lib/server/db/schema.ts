@@ -19,7 +19,7 @@ export const users = table(
 			.notNull()
 			.default(sql`(unixepoch())`)
 	},
-	(t) => [index('username_idx').on(t.username)]
+	(t) => [index('username_idx').on(t.username), index('external_id_idx').on(t.externalId)]
 );
 
 export const notebooks = table('notebooks', {

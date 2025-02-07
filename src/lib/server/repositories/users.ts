@@ -1,14 +1,13 @@
-import { eq } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
 import { users } from '../db/schema';
 import { NotCreated, NotFound } from './errors';
+import { isDrizzleSpecification, type Specification } from './specifications';
 
 export type User = typeof users.$inferSelect;
 
 export interface UserRepository {
 	create(data: Omit<User, 'id' | 'createdAt'>): Promise<User>;
-	read(id: User['id']): Promise<User>;
-	read(username: User['username']): Promise<User>;
+	read(spec: Specification<User>): Promise<User>;
 }
 
 class DrizzleUserRepository implements UserRepository {
@@ -18,6 +17,7 @@ class DrizzleUserRepository implements UserRepository {
 		const [user] = await this.db
 			.insert(users)
 			.values({ username: data.username, externalId: data.externalId })
+			.onConflictDoUpdate({ target: users.externalId, set: { externalId: data.externalId } })
 			.returning();
 
 		if (!user) throw new NotCreated('User not created');
@@ -25,15 +25,14 @@ class DrizzleUserRepository implements UserRepository {
 		return user;
 	}
 
-	async read(identifier: User['id'] | User['username']): Promise<User> {
-		const user = await this.db.query.users.findFirst({
-			where:
-				typeof identifier === 'number' ? eq(users.id, identifier) : eq(users.username, identifier)
-		});
+	async read(spec: Specification<User>): Promise<User> {
+		if (!isDrizzleSpecification(spec)) throw TypeError('Invalid specification');
+
+		const user = await this.db.query.users.findFirst({ where: spec.toQuery() });
 
 		if (user) return user;
 
-		throw new NotFound('User not found for identifier ' + identifier);
+		throw new NotFound('User not found');
 	}
 }
 

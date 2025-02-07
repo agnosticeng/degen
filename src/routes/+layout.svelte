@@ -5,9 +5,9 @@
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
 	import Search from '$lib/cmpnt/svg/search.svelte';
 	import '$lib/styles/main.css';
-	import type { ActionData } from './$types';
+	import type { ActionData, LayoutProps } from './$types';
 
-	let { children } = $props();
+	let { data, children }: LayoutProps = $props();
 
 	let openNewNotebook = $state(false);
 	let newNotebookModal = $state<ReturnType<typeof Modal>>();
@@ -17,18 +17,66 @@
 <header>
 	<a href="/"><Logo /></a>
 	<span>
-		<button class="new" onclick={() => (openNewNotebook = true)}>
-			<PlusCircle size="16" /> New
-		</button>
-		<button class="sign-in">Sign in</button>
+		{#if data.user}
+			<button class="new" onclick={() => (openNewNotebook = true)} disabled={!data.user.username}>
+				<PlusCircle size="16" /> New
+			</button>
+		{/if}
+		{#if data.authenticated}
+			<a href="/logout" data-sveltekit-preload-data="off">
+				<button class="sign-in">Log out</button>
+			</a>
+		{:else}
+			<a href="/login" data-sveltekit-preload-data="off">
+				<button class="sign-in">Sign in</button>
+			</a>
+		{/if}
 		<Search size={20} />
 	</span>
 </header>
-{@render children()}
-
+{#if data.authenticated && !data.user}
+	<form
+		class="create-user"
+		method="POST"
+		action="/?/create_user"
+		use:enhance={() =>
+			async ({ formElement, result }) => {
+				if (result.type === 'failure') {
+					const data = result.data as ActionData;
+					errorMessage = data?.message ?? '';
+					return;
+				}
+				formElement.reset();
+				errorMessage = '';
+				await applyAction(result);
+			}}
+	>
+		<h1>Create your username!</h1>
+		<h2>Your username will be public and cannot be changed.</h2>
+		<label>
+			<span>Username</span>
+			<input
+				type="text"
+				placeholder="satoshinakamoto"
+				autocomplete="off"
+				autocapitalize="off"
+				spellcheck="false"
+				name="username"
+				required
+			/>
+		</label>
+		<div class="errors">{errorMessage}</div>
+		<div class="actions">
+			<button type="submit">Save</button>
+		</div>
+	</form>
+{:else}
+	{@render children()}
+{/if}
 {#if openNewNotebook}
 	<Modal onclose={() => (openNewNotebook = false)} bind:this={newNotebookModal}>
 		<form
+			class="new-notebook"
 			method="POST"
 			action="/?/create_notebook"
 			use:enhance={() =>
@@ -155,7 +203,7 @@
 		caret-color: currentColor;
 		background-color: hsl(0deg 0% 3%);
 		border: 1px solid hsl(0deg 0% 3%);
-		border-radius: 3px;
+		border-radius: 5px;
 		padding: 5px 10px;
 
 		outline: none;
@@ -184,5 +232,19 @@
 		gap: 12px;
 		height: 28px;
 		margin-top: 12px;
+	}
+
+	form.create-user {
+		background-color: inherit;
+		max-width: 560px;
+		margin: 0 auto;
+
+		h2 {
+			font-weight: 400;
+			font-size: 12px;
+			color: hsl(0, 0%, 65%);
+			margin: 0;
+			margin-bottom: 30px;
+		}
 	}
 </style>
