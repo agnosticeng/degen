@@ -27,6 +27,17 @@ export const GET: RequestHandler = async (event) => {
 		sameSite: 'lax'
 	});
 
+	const redirectTo = event.url.searchParams.get('redirectTo');
+	if (redirectTo) {
+		event.cookies.set('redirect_after_login', redirectTo, {
+			httpOnly: true,
+			maxAge: 60 * 10,
+			secure: import.meta.env.PROD,
+			path: '/',
+			sameSite: 'lax'
+		});
+	}
+
 	return new Response(null, {
 		status: 302,
 		headers: { Location: url.toString() }

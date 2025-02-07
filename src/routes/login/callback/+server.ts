@@ -9,6 +9,8 @@ export const GET: RequestHandler = async (event) => {
 	const code = event.url.searchParams.get('code');
 	const state = event.url.searchParams.get('state');
 
+	const redirectTo = event.cookies.get('redirect_after_login') ?? null;
+
 	if (event.url.searchParams.get('error') === 'access_denied') {
 		return new Response(null, {
 			status: 304,
@@ -33,11 +35,9 @@ export const GET: RequestHandler = async (event) => {
 
 	event.cookies.delete('oauth_state', { path: '/' });
 	event.cookies.delete('code_verifier', { path: '/' });
+	event.cookies.delete('redirect_after_login', { path: '/' });
 
 	setTokensIntoCookies(event.cookies, tokens);
 
-	return new Response(null, {
-		status: 302,
-		headers: { Location: '/' }
-	});
+	return new Response(null, { status: 302, headers: { Location: redirectTo ?? '/' } });
 };
