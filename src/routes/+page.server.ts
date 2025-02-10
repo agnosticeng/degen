@@ -11,6 +11,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load = (async ({ url }) => {
 	let id: User['id'] | undefined;
 	if (url.searchParams.has('author')) id = await getAuthorId(url.searchParams.get('author')!);
+
 	return { notebooks: await notebookRepository.list(id) };
 }) satisfies PageServerLoad;
 

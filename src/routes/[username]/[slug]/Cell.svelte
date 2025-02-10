@@ -9,15 +9,15 @@
 	import Play from '$lib/cmpnt/svg/play.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import { renderMarkdown } from '$lib/markdown';
-	import { exec, isProxyError, type ProxyResponse } from '$lib/proxy';
-	import type { EditionBlock } from '$lib/server/repositories/blocks';
+	import type { ExecutionWithResultURL, ProxyResult } from '$lib/server/proxy';
+	import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
 	import { Table } from '@agnosticeng/dv';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import './markdown.css';
 
 	interface Props {
-		block: EditionBlock;
+		block: EditionBlock | (Block & { executions?: ExecutionWithResultURL[] });
 		onDelete: (block: EditionBlock) => unknown;
 		readonly?: boolean;
 	}
@@ -38,8 +38,9 @@
 				html = await renderMarkdown(block.content);
 			}
 
-			if (block.type === 'sql') {
-				proxyResponse = await exec(block.content);
+			if (block.type === 'sql' && 'executions' in block) {
+				const execution = block.executions?.findLast((e) => e.status === 'SUCCEEDED');
+				if (execution) proxyResponse = await fetchResult(execution);
 			}
 		} catch (e) {
 			console.error(e);
@@ -48,11 +49,16 @@
 		}
 	});
 
+	async function fetchResult(execution: ExecutionWithResultURL) {
+		const response = await fetch(execution.result_url);
+		if (response.ok) return (await response.json()) as ProxyResult;
+	}
+
 	let contentSnapshot = $state(block.content);
 	const dirty = $derived(contentSnapshot !== block.content);
 	let loading = $state(false);
 	let error = $state<string>('');
-	let proxyResponse = $state<ProxyResponse>();
+	let proxyResponse = $state<ProxyResult>();
 	async function handleRun() {
 		if (!dirty) return;
 
@@ -66,28 +72,20 @@
 				else html = '';
 			}
 
-			if (block.type === 'sql') {
-				if (block.content) proxyResponse = await exec(block.content);
-				else proxyResponse = undefined;
-			}
-
 			contentSnapshot = block.content;
 		} catch (e) {
-			if (isProxyError(e)) error = e.message;
-			else console.error(e);
+			console.error(e);
 		} finally {
 			loading = false;
 		}
 	}
-
-	const canOpen = $derived(!block.pinned && (!!html || !!proxyResponse));
 </script>
 
 <article>
 	<div class="gutter" bind:this={anchor}>
 		<button
 			class="chevron"
-			disabled={!canOpen}
+			disabled={block.pinned}
 			class:rotate={!open && !block.pinned}
 			onclick={() => (open = !open)}
 		>
