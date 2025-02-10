@@ -23,9 +23,21 @@
 	let opened = $state(false);
 	let dropdown = $state<HTMLElement>();
 
-	$effect(() => {
+	$effect(() => void updatePosition());
+
+	export function close() {
+		opened = false;
+		onClose?.();
+	}
+
+	export function open(target?: HTMLElement) {
+		if (target) anchor = target;
+		opened = true;
+	}
+
+	async function updatePosition() {
 		if (opened && anchor && dropdown) {
-			computePosition(anchor, dropdown, {
+			const { x, y } = await computePosition(anchor, dropdown, {
 				placement,
 				middleware: [
 					size({
@@ -38,34 +50,13 @@
 					flip(),
 					shift({ padding: 5 })
 				]
-			}).then(({ x, y }) => {
-				if (dropdown) Object.assign(dropdown.style, { left: `${x}px`, top: `${y}px` });
-			});
-		}
-	});
-
-	export function close() {
-		opened = false;
-		onClose?.();
-	}
-
-	export function open(target?: HTMLElement) {
-		if (target) anchor = target;
-		opened = true;
-	}
-
-	async function handleResize() {
-		if (opened && anchor && dropdown) {
-			const { x, y } = await computePosition(anchor, dropdown, {
-				placement,
-				middleware: [offset(5), flip(), shift({ padding: 5 })]
 			});
 			Object.assign(dropdown.style, { left: `${x}px`, top: `${y}px` });
 		}
 	}
 </script>
 
-<svelte:window onresize={handleResize} />
+<svelte:window onresize={updatePosition} onscroll={updatePosition} />
 
 {#if opened}
 	<div
