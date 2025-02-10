@@ -39,7 +39,10 @@
 		}
 	}
 
-	let blocks = $state<EditionBlock[]>(data.notebook.blocks.slice());
+	let blocks = $state<(EditionBlock | (typeof data.notebook.blocks)[number])[]>(
+		data.notebook.blocks.slice()
+	);
+
 	const lastUpdate = $derived.by(() => {
 		return blocks.reduce(
 			(acc, b) => (b.updatedAt && b.updatedAt.getTime() > acc.getTime() ? b.updatedAt : acc),

@@ -36,7 +36,8 @@ export default ts.config(
 			'@typescript-eslint/no-unused-vars': [
 				'warn',
 				{ argsIgnorePattern: '^_', ignoreRestSiblings: true }
-			]
+			],
+			'no-undef': 'off'
 		}
 	}
 );

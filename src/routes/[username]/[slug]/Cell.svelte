@@ -9,15 +9,16 @@
 	import Play from '$lib/cmpnt/svg/play.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import { renderMarkdown } from '$lib/markdown';
-	import { exec, isProxyError, type ProxyResponse } from '$lib/proxy';
-	import type { EditionBlock } from '$lib/server/repositories/blocks';
+	import type { ExecutionWithResultURL, ProxyResult } from '$lib/server/proxy';
+	import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
 	import { Table } from '@agnosticeng/dv';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import ExecutionSelect from './ExecutionSelect.svelte';
 	import './markdown.css';
 
 	interface Props {
-		block: EditionBlock;
+		block: EditionBlock | (Block & { executions?: ExecutionWithResultURL[] });
 		onDelete: (block: EditionBlock) => unknown;
 		readonly?: boolean;
 	}
@@ -28,66 +29,76 @@
 	let select = $state<ReturnType<typeof Select>>();
 	let anchor = $state<HTMLElement>();
 
-	let html = $state<string>('');
-	onMount(async () => {
-		if (!block.content) return;
-		try {
-			loading = true;
-
-			if (block.type === 'markdown') {
-				html = await renderMarkdown(block.content);
-			}
-
-			if (block.type === 'sql') {
-				proxyResponse = await exec(block.content);
-			}
-		} catch (e) {
-			console.error(e);
-		} finally {
-			loading = false;
-		}
-	});
-
-	let contentSnapshot = $state(block.content);
-	const dirty = $derived(contentSnapshot !== block.content);
-	let loading = $state(false);
-	let error = $state<string>('');
-	let proxyResponse = $state<ProxyResponse>();
-	async function handleRun() {
-		if (!dirty) return;
-
-		if (loading) return;
-		loading = true;
-		error = '';
-
-		try {
-			if (block.type === 'markdown') {
-				if (block.content) html = await renderMarkdown(block.content);
-				else html = '';
-			}
-
-			if (block.type === 'sql') {
-				if (block.content) proxyResponse = await exec(block.content);
-				else proxyResponse = undefined;
-			}
-
-			contentSnapshot = block.content;
-		} catch (e) {
-			if (isProxyError(e)) error = e.message;
-			else console.error(e);
-		} finally {
-			loading = false;
+	let promise = $state<Promise<string | ProxyResult | undefined>>()!;
+	let selectedExecution = $state.raw(getLast(block));
+	function getLast(block: Props['block']) {
+		if ('executions' in block) {
+			return block.executions?.find((e) => e.status === 'SUCCEEDED') ?? block.executions?.at(0);
 		}
 	}
 
-	const canOpen = $derived(!block.pinned && (!!html || !!proxyResponse));
+	$effect(() => {
+		if (selectedExecution) {
+			if (selectedExecution.status === 'SUCCEEDED') {
+				promise = fetchResult(selectedExecution);
+			} else error = selectedExecution.error ?? '';
+		}
+	});
+
+	onMount(async () => {
+		if (!block.content) return;
+		try {
+			if (block.type === 'markdown') {
+				promise = renderMarkdown(block.content).catch((e) => {
+					if (e instanceof Error) error = e.message;
+					else console.error(e);
+					return '';
+				});
+			}
+
+			if (block.type === 'sql' && selectedExecution) {
+				if (selectedExecution.status === 'SUCCEEDED') {
+					promise = fetchResult(selectedExecution);
+				} else error = selectedExecution.error ?? '';
+			}
+		} catch (e) {
+			console.error(e);
+		}
+	});
+
+	async function fetchResult(execution: ExecutionWithResultURL): Promise<ProxyResult | undefined> {
+		const response = await fetch(execution.result_url);
+		if (response.ok) return await response.json();
+	}
+
+	let contentSnapshot = $state(block.content);
+	const dirty = $derived(contentSnapshot !== block.content);
+	let error = $state<string>('');
+
+	async function handleRun() {
+		if (!dirty) return;
+
+		error = '';
+
+		if (block.type === 'markdown') {
+			if (block.content)
+				promise = renderMarkdown(block.content).catch((e) => {
+					if (e instanceof Error) error = e.message;
+					else console.error(e);
+					return '';
+				});
+			else promise = Promise.resolve('');
+		}
+
+		contentSnapshot = block.content;
+	}
 </script>
 
 <article>
 	<div class="gutter" bind:this={anchor}>
 		<button
 			class="chevron"
-			disabled={!canOpen}
+			disabled={block.pinned}
 			class:rotate={!open && !block.pinned}
 			onclick={() => (open = !open)}
 		>
@@ -98,36 +109,47 @@
 			<DotsThreeVertical size="14" />
 		</button>
 	</div>
+	{#if block.type === 'sql'}
+		{#if 'executions' in block && block.executions?.length}
+			<div class="cell-header">
+				<ExecutionSelect
+					bind:selected={selectedExecution!}
+					executions={$state.snapshot(block.executions)}
+				/>
+			</div>
+		{/if}
+	{/if}
 	<div class="cell-content">
-		{#if block.type === 'markdown' && html}
-			<div class="output markdown-body">
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				{@html html}
-			</div>
-		{/if}
-		{#if block.type === 'sql' && (proxyResponse || error)}
-			<div class="output sql" class:error>
-				{#if proxyResponse}
-					<Table data={proxyResponse.data} columns={proxyResponse.meta} />
-				{:else if error}
-					<span>{error}</span>
-				{/if}
-			</div>
-		{/if}
-		{#if loading && !open && !block.pinned}
+		{#await promise}
 			<div class="loading-container">
 				<Loader size="14" />
 			</div>
-		{/if}
+		{:then result}
+			{#if typeof result === 'string' && result && block.type === 'markdown'}
+				<div class="output markdown-body">
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{@html result}
+				</div>
+			{/if}
+			{#if typeof result === 'object' && block.type === 'sql'}
+				<div class="output sql" class:error>
+					{#if result}
+						<Table data={result.data} columns={result.meta} />
+					{:else if error}
+						<span>{error}</span>
+					{/if}
+				</div>
+			{/if}
+		{:catch e}
+			{console.error(e)}
+		{/await}
 		{#if open || block.pinned}
 			<div class="input" transition:slide={{ duration: 200 }}>
-				<button onclick={handleRun} class:dirty disabled={loading || readonly}>
-					{#if loading}
-						<Loader size="14" />
-					{:else if !readonly}
+				{#if block.type === 'markdown' && !readonly}
+					<button onclick={handleRun} class:dirty>
 						<Play size="14" />
-					{/if}
-				</button>
+					</button>
+				{/if}
 				{#if block.type === 'sql'}
 					<SqlEditor bind:value={block.content} onRun={() => handleRun()} {readonly} />
 				{:else if block.type === 'markdown'}
@@ -174,6 +196,22 @@
 
 	article + :global(article) {
 		margin-top: 20px;
+	}
+
+	.cell-header {
+		height: 30px;
+		border-top-right-radius: 3px;
+		transition: background-color 100ms ease-in;
+		padding: 0 10px;
+
+		display: flex;
+		align-items: center;
+		justify-content: end;
+	}
+
+	.cell-header ~ .cell-content .output {
+		border-top-left-radius: 0;
+		border-top-right-radius: 0;
 	}
 
 	.gutter {
@@ -247,6 +285,11 @@
 		}
 	}
 
+	article:is(:hover) .cell-header {
+		background-color: hsl(0, 0%, 15%);
+	}
+
+	article:is(:focus-within) .cell-header,
 	article:is(:focus-within) .more {
 		background-color: hsl(212, 55%, 20%);
 	}
