@@ -39,15 +39,16 @@ export async function search(
 
 	await Promise.all(
 		queries
-			.map((q, index) => [queryIdToId(q.query_id, prefix), json[index]] as const)
+			.map((q) => {
+				const executions = (json.find((e) => e.every((e) => e.query_id === q.query_id)) ?? [])
+					.map((e) => ({ ...e, created_at: new Date(e.created_at) }))
+					.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
+				return [queryIdToId(q.query_id, prefix), executions] as const;
+			})
 			.map(async ([id, executions]) => {
 				const block = blocks.find((b) => b.id === id);
 				if (!block) error('Block not found');
 				if (!executions.length) return create(block.content, toQueryId(block, prefix), quota_key);
-
-				executions.sort((a, b) => {
-					return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-				});
 
 				const last = executions.findLast((b) => b.status === 'SUCCEEDED');
 				if (!last) return create(block.content, toQueryId(block, prefix), quota_key);

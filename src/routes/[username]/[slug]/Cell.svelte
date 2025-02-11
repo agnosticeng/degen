@@ -29,7 +29,7 @@
 	let select = $state<ReturnType<typeof Select>>();
 	let anchor = $state<HTMLElement>();
 
-	let promise = $state<Promise<string | ProxyResult | undefined>>()!;
+	let promise = $state.raw<Promise<string | ProxyResult | void>>(Promise.resolve());
 	let selectedExecution = $state.raw(getLast(block));
 	function getLast(block: Props['block']) {
 		if ('executions' in block) {
@@ -41,7 +41,11 @@
 		if (selectedExecution) {
 			if (selectedExecution.status === 'SUCCEEDED') {
 				promise = fetchResult(selectedExecution);
-			} else error = selectedExecution.error ?? '';
+				error = '';
+			} else {
+				promise = Promise.resolve();
+				error = selectedExecution.error ?? '';
+			}
 		}
 	});
 
@@ -125,17 +129,21 @@
 				<Loader size="14" />
 			</div>
 		{:then result}
-			{#if typeof result === 'string' && result && block.type === 'markdown'}
-				<div class="output markdown-body">
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{@html result}
-				</div>
-			{/if}
-			{#if typeof result === 'object' && block.type === 'sql'}
-				<div class="output sql" class:error>
-					{#if result}
+			{#if result || error}
+				<div
+					class="output"
+					class:markdown-body={block.type === 'markdown'}
+					class:sql={block.type === 'sql'}
+					class:error
+				>
+					{#if typeof result === 'string' && result && block.type === 'markdown'}
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+						{@html result}
+					{/if}
+					{#if typeof result === 'object' && block.type === 'sql'}
 						<Table data={result.data} columns={result.meta} />
-					{:else if error}
+					{/if}
+					{#if error}
 						<span>{error}</span>
 					{/if}
 				</div>
@@ -143,6 +151,11 @@
 		{:catch e}
 			{console.error(e)}
 		{/await}
+		{#if typeof block.id !== 'undefined' && 'executions' in block && !block.executions?.length}
+			<div class="output">
+				<span>The data are being process. Please reload the page to see the results</span>
+			</div>
+		{/if}
 		{#if open || block.pinned}
 			<div class="input" transition:slide={{ duration: 200 }}>
 				{#if block.type === 'markdown' && !readonly}
