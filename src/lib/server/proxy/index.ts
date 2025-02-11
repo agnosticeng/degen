@@ -37,45 +37,42 @@ export async function search(
 	const now = Date.now();
 	const one_hour = 1000 * 60 * 60;
 
-	await Promise.all(
-		queries
-			.map((q) => {
-				const executions = (json.find((e) => e.every((e) => e.query_id === q.query_id)) ?? [])
-					.map((e) => ({ ...e, created_at: new Date(e.created_at) }))
-					.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
-				return [queryIdToId(q.query_id, prefix), executions] as const;
-			})
-			.map(async ([id, executions]) => {
-				const block = blocks.find((b) => b.id === id);
-				if (!block) error('Block not found');
-				if (!executions.length) return create(block.content, toQueryId(block, prefix), quota_key);
-
-				const last = executions.findLast((b) => b.status === 'SUCCEEDED');
-				if (!last) return create(block.content, toQueryId(block, prefix), quota_key);
-
-				if (now - new Date(last.created_at).getTime() > one_hour)
-					return create(block.content, toQueryId(block, prefix), quota_key);
-			})
-	);
-
-	const executions = await Promise.all(
-		json.flat().map<Promise<ExecutionWithResultURL>>(async (exec) => ({
-			...exec,
-			created_at: new Date(exec.created_at),
-			result_url: await getSignUrl(exec.id)
-		}))
-	);
-
-	return blocks.map((b) => {
-		if (b.type === 'markdown') return b;
-
-		return {
-			...b,
-			executions: executions
-				.filter((e) => e.query_id === toQueryId(b, prefix))
-				.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
-		};
+	const executions = queries.map((q) => {
+		const executions = (json.find((e) => e.every((e) => e.query_id === q.query_id)) ?? [])
+			.map((e) => ({ ...e, created_at: new Date(e.created_at) }))
+			.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
+		return [queryIdToId(q.query_id, prefix), executions] as const;
 	});
+
+	await Promise.all(
+		executions.map(async ([id, executions]) => {
+			const block = blocks.find((b) => b.id === id);
+			if (!block) error('Block not found');
+			const createArgs = [block.content, toQueryId(block, prefix), quota_key] as const;
+
+			if (!executions.length) return create(...createArgs);
+
+			const last = executions.findLast((b) => b.status === 'SUCCEEDED');
+			if (!last) return create(...createArgs);
+
+			if (now - new Date(last.created_at).getTime() > one_hour) return create(...createArgs);
+		})
+	);
+
+	const executionsMap = Object.fromEntries(executions);
+
+	return Promise.all(
+		blocks.map(async (b) => {
+			if (b.type === 'markdown') return b;
+
+			const executions = await Promise.all(
+				executionsMap[b.id]?.map(async (e) => ({ ...e, result_url: await getResultUrl(e.id) })) ??
+					[]
+			);
+
+			return { ...b, executions };
+		})
+	);
 }
 
 async function blockToQuerySearch(block: Block, prefix: string): Promise<QuerySearch> {
@@ -102,7 +99,7 @@ function error(message: string): never {
 	throw error;
 }
 
-async function getSignUrl(execution: number): Promise<string> {
+async function getResultUrl(execution: number): Promise<string> {
 	const url = new URL(env.PROXY_URL);
 
 	const expiration = (Math.floor(Date.now() / 1000) + 3600).toString();
@@ -115,7 +112,7 @@ async function getSignUrl(execution: number): Promise<string> {
 	return url.toString();
 }
 
-export async function create(sql: string, query_id: string, quota_key: User['id'] | 'public') {
+async function create(sql: string, query_id: string, quota_key: User['id'] | 'public') {
 	const url = new URL(env.PROXY_URL);
 	url.pathname = '/v1/async/executions';
 	url.searchParams.set('quota-key', `${quota_key}`);
