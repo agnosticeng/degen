@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { portal } from '$lib/actions/portal.svelte';
-	import { computePosition, flip, offset, shift, type Placement } from '@floating-ui/dom';
+	import { computePosition, flip, offset, shift, size, type Placement } from '@floating-ui/dom';
 	import type { Snippet } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 
@@ -9,23 +9,21 @@
 		placement?: Placement;
 		children?: Snippet;
 		onClose?: () => void;
+		anchor_size?: boolean;
 	}
 
-	let { anchor, placement = 'bottom-start', children, onClose }: Props = $props();
+	let {
+		anchor,
+		placement = 'bottom-start',
+		children,
+		onClose,
+		anchor_size = false
+	}: Props = $props();
 
 	let opened = $state(false);
 	let dropdown = $state<HTMLElement>();
 
-	$effect(() => {
-		if (opened && anchor && dropdown) {
-			computePosition(anchor, dropdown, {
-				placement,
-				middleware: [offset(5), flip(), shift({ padding: 5 })]
-			}).then(({ x, y }) => {
-				if (dropdown) Object.assign(dropdown.style, { left: `${x}px`, top: `${y}px` });
-			});
-		}
-	});
+	$effect(() => void updatePosition());
 
 	export function close() {
 		opened = false;
@@ -37,18 +35,28 @@
 		opened = true;
 	}
 
-	async function handleResize() {
+	async function updatePosition() {
 		if (opened && anchor && dropdown) {
 			const { x, y } = await computePosition(anchor, dropdown, {
 				placement,
-				middleware: [offset(5), flip(), shift({ padding: 5 })]
+				middleware: [
+					size({
+						apply({ elements, rects }) {
+							if (anchor_size)
+								Object.assign(elements.floating.style, { minWidth: `${rects.reference.width}px` });
+						}
+					}),
+					offset(5),
+					flip(),
+					shift({ padding: 5 })
+				]
 			});
 			Object.assign(dropdown.style, { left: `${x}px`, top: `${y}px` });
 		}
 	}
 </script>
 
-<svelte:window onresize={handleResize} />
+<svelte:window onresize={updatePosition} onscroll={updatePosition} />
 
 {#if opened}
 	<div
