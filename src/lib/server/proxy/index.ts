@@ -22,6 +22,7 @@ export async function search(
 	const url = new URL(env.PROXY_URL);
 	url.pathname = '/v1/async/search';
 	url.searchParams.set('quota-key', `${quota_key}`);
+
 	const headers = new Headers();
 	headers.set('Content-Type', 'application/json');
 	headers.set('Authorization', env.PROXY_SECRET);
@@ -38,7 +39,7 @@ export async function search(
 	const one_hour = 1000 * 60 * 60;
 
 	const executions = queries.map((q) => {
-		const executions = (json.find((e) => e.every((e) => e.query_id === q.query_id)) ?? [])
+		const executions = (json.find((e) => e.some((e) => e.query_id === q.query_id)) ?? [])
 			.map((e) => ({ ...e, created_at: new Date(e.created_at) }))
 			.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
 		return [queryIdToId(q.query_id, prefix), executions] as const;
@@ -52,7 +53,9 @@ export async function search(
 
 			if (!executions.length) return create(...createArgs);
 
-			const last = executions.findLast((b) => b.status === 'SUCCEEDED');
+			const last = executions.findLast(
+				(b) => b.status === 'SUCCEEDED' || b.status === 'PENDING' || b.status === 'RUNNING'
+			);
 			if (!last) return create(...createArgs);
 
 			if (now - new Date(last.created_at).getTime() > one_hour) return create(...createArgs);
@@ -81,7 +84,7 @@ async function blockToQuerySearch(block: Block, prefix: string): Promise<QuerySe
 		query_hash: await hash(block.content),
 		limit: 5,
 		sort_by: 'CREATED_AT',
-		statuses: ['SUCCEEDED', 'FAILED']
+		statuses: ['SUCCEEDED', 'FAILED', 'PENDING', 'RUNNING']
 	};
 }
 
