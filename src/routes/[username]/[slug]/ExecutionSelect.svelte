@@ -28,7 +28,7 @@
 </script>
 
 <div>
-	<span>Result: </span>
+	<span>Runs: </span>
 	<button bind:this={button} onclick={handleOpen} class:opened>
 		{#if selected.status === 'PENDING' || selected.status === 'RUNNING'}
 			<Loader size="14" />
