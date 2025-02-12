@@ -24,13 +24,12 @@
 			</button>
 		{/if}
 		{#if data.authenticated}
-			<a href="/logout" data-sveltekit-preload-data="off">
-				<button class="sign-in">Log out</button>
-			</a>
+			<button class="sign-in" onclick={() => (location.href = '/logout')}>Log out</button>
 		{:else}
-			<a href="/login?redirectTo={page.url.pathname}" data-sveltekit-preload-data="off">
-				<button class="sign-in">Sign in</button>
-			</a>
+			<button
+				class="sign-in"
+				onclick={() => (location.href = `/login?redirectTo=${page.url.pathname}`)}>Sign in</button
+			>
 		{/if}
 		<Search size={20} />
 	</span>

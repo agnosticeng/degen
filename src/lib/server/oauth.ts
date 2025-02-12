@@ -23,3 +23,13 @@ export async function verifyJWT(token: string) {
 
 	return payload;
 }
+
+export function createLogoutURL(idToken: string, redirectTo: string) {
+	const url = new URL(`https://${env.AUTH0_DOMAIN}`);
+	url.pathname = '/oidc/logout';
+
+	url.searchParams.set('id_token_hint', idToken);
+	url.searchParams.set('post_logout_redirect_uri', redirectTo);
+
+	return url;
+}

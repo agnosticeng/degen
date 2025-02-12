@@ -1,5 +1,5 @@
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
-import { auth0 } from '$lib/server/oauth';
+import { auth0, createLogoutURL } from '$lib/server/oauth';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -7,6 +7,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	const { idToken, refreshToken } = getTokensFromCookies(cookies);
 
 	if (!idToken) error(401);
+
+	const logoutUrl = createLogoutURL(idToken, url.origin);
 
 	if (refreshToken) {
 		try {
@@ -18,5 +20,5 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 
 	deleteTokensFromCookies(cookies);
 
-	return new Response(null, { status: 302, headers: { Location: '/' } });
+	return new Response(null, { status: 302, headers: { Location: logoutUrl.toString() } });
 };
