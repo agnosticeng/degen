@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Select from '$lib/cmpnt/Select.svelte';
 	import Database from '$lib/cmpnt/svg/database.svelte';
+	import Loader from '$lib/cmpnt/svg/loader.svelte';
 	import WarningCircle from '$lib/cmpnt/svg/warning-circle.svelte';
 	import type { ExecutionWithResultURL } from '$lib/server/proxy';
 
@@ -29,7 +30,12 @@
 <div>
 	<span>Result: </span>
 	<button bind:this={button} onclick={handleOpen} class:opened>
-		<span>{selected.created_at.toLocaleString()}</span>
+		{#if selected.status === 'PENDING' || selected.status === 'RUNNING'}
+			<Loader size="14" />
+			<i>An execution is running...</i>
+		{:else}
+			<span>{selected.created_at.toLocaleString()}</span>
+		{/if}
 	</button>
 </div>
 
@@ -46,13 +52,20 @@
 				<button
 					onclick={() => handleSelect(execution)}
 					title="Execution {execution.status.toLowerCase()}"
+					disabled={execution.status === 'PENDING' || execution.status === 'RUNNING'}
 				>
 					{#if execution.status === 'SUCCEEDED'}
 						<Database size="14" />
 					{:else if execution.status === 'FAILED'}
 						<WarningCircle size="14" color="hsl(0deg 100% 90%)" />
+					{:else if execution.status === 'PENDING' || execution.status === 'RUNNING'}
+						<Loader size="14" />
 					{/if}
-					<span>{execution.created_at.toLocaleString()}</span>
+					{#if execution.status === 'PENDING' || execution.status === 'RUNNING'}
+						<i>An execution is running...</i>
+					{:else}
+						<span>{execution.created_at.toLocaleString()}</span>
+					{/if}
 				</button>
 			</li>
 		{/each}
@@ -76,6 +89,10 @@
 			border-radius: 5px;
 			border: 1px solid hsl(0, 0%, 15%);
 			color: inherit;
+
+			display: flex;
+			align-items: center;
+			gap: 8px;
 
 			&:is(.opened, :hover) {
 				background-color: hsl(0, 0%, 15%);
