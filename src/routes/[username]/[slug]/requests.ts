@@ -19,11 +19,14 @@ export async function updateBlocks(id: Notebook['id'], blocks: EditionBlock[]) {
 	}
 }
 
-export async function updateVisibility(id: Notebook['id'], visibility: Notebook['visibility']) {
+export async function update(
+	id: Notebook['id'],
+	{ visibility, title }: { visibility: Notebook['visibility']; title: Notebook['title'] }
+) {
 	const response = await fetch(`/api/notebooks/${id}`, {
 		method: 'PUT',
 		headers: { 'Content-type': 'application/json' },
-		body: JSON.stringify({ visibility })
+		body: JSON.stringify({ visibility, title })
 	});
 
 	if (response.ok) {

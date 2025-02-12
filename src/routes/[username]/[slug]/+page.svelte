@@ -15,6 +15,7 @@
 	import AddBlock from './AddBlock.svelte';
 	import Cell from './Cell.svelte';
 	import LikeButton from './LikeButton.svelte';
+	import RenameModal from './RenameModal.svelte';
 	import { deleteNotebook, like, updateBlocks } from './requests';
 	import ShareModal from './ShareModal.svelte';
 
@@ -83,6 +84,7 @@
 	}
 
 	let shareModal: ReturnType<typeof ShareModal>;
+	let renameModal: ReturnType<typeof RenameModal>;
 
 	async function handleDelete() {
 		moreNotebookSelect.close();
@@ -146,6 +148,16 @@
 					</button>
 				</li>
 				{#if data.isAuthor}
+					<li>
+						<button
+							onclick={() => {
+								renameModal.show();
+								moreNotebookSelect.close();
+							}}
+						>
+							<PencilSimpleLine size="14" />Rename
+						</button>
+					</li>
 					<li><span class="separator"></span></li>
 					<li>
 						<button class="danger" onclick={handleDelete}>
@@ -163,6 +175,7 @@
 	bind:this={shareModal}
 	disabled={!data.isAuthor}
 />
+<RenameModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={renameModal} />
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />

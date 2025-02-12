@@ -3,7 +3,7 @@
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
-	import { updateVisibility } from './requests';
+	import { update } from './requests';
 
 	interface Props {
 		notebook: Notebook;
@@ -22,7 +22,10 @@
 		const visibility = formData.get('visibility');
 
 		if (typeof visibility === 'string' && ['private', 'public', 'unlisted'].includes(visibility)) {
-			const updated = await updateVisibility(notebook.id, visibility as Notebook['visibility']);
+			const updated = await update(notebook.id, {
+				visibility: visibility as Notebook['visibility'],
+				title: notebook.title
+			});
 			if (!updated) return;
 
 			onSuccess?.(updated);
