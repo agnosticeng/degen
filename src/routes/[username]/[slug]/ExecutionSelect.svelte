@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Select from '$lib/cmpnt/Select.svelte';
-	import Database from '$lib/cmpnt/svg/database.svelte';
+	import CheckCircle from '$lib/cmpnt/svg/check-circle.svelte';
 	import Loader from '$lib/cmpnt/svg/loader.svelte';
 	import WarningCircle from '$lib/cmpnt/svg/warning-circle.svelte';
 	import type { ExecutionWithResultURL } from '$lib/server/proxy';
@@ -55,7 +55,7 @@
 					disabled={execution.status === 'PENDING' || execution.status === 'RUNNING'}
 				>
 					{#if execution.status === 'SUCCEEDED'}
-						<Database size="14" />
+						<CheckCircle size="14" />
 					{:else if execution.status === 'FAILED'}
 						<WarningCircle size="14" color="hsl(0deg 100% 90%)" />
 					{:else if execution.status === 'PENDING' || execution.status === 'RUNNING'}
