@@ -46,7 +46,6 @@
 		padding: 4px;
 		background-color: hsl(156, 59%, 20%);
 		color: hsl(152, 54%, 65%);
-		font-size: 14px;
 		border-radius: 4px;
 
 		&.purple {

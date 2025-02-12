@@ -123,7 +123,6 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 14px;
 
 		select {
 			appearance: none;
@@ -153,7 +152,6 @@
 	}
 
 	button {
-		font-size: 14px;
 		font-weight: 500;
 		border: none;
 		padding: 8px 16px;

@@ -304,7 +304,6 @@
 		flex-wrap: wrap;
 		margin: 8px 0;
 		padding: 16px 0;
-		font-size: 14px;
 
 		& .updated_at {
 			display: flex;
