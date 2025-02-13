@@ -10,7 +10,7 @@
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import { renderMarkdown } from '$lib/markdown';
 	import type { ExecutionWithResultURL, ProxyResult } from '$lib/server/proxy';
-	import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
+	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import { Table } from '@agnosticeng/dv';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
@@ -18,7 +18,7 @@
 	import './markdown.css';
 
 	interface Props {
-		block: EditionBlock | (Block & { executions?: ExecutionWithResultURL[] });
+		block: EditionBlock & { executions?: ExecutionWithResultURL[] };
 		onDelete: (block: EditionBlock) => unknown;
 		readonly?: boolean;
 	}

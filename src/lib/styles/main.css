@@ -4,6 +4,10 @@
 @layer normalize, base, app;
 
 @layer app {
+	:root {
+		font-size: 0.875rem;
+	}
+
 	a {
 		color: inherit;
 		text-decoration: none;

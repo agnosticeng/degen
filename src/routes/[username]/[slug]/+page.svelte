@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
@@ -9,14 +10,17 @@
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
+	import { PreventNavigation } from '$lib/navigation.svelte';
+	import type { ExecutionWithResultURL } from '$lib/server/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Cell from './Cell.svelte';
 	import LikeButton from './LikeButton.svelte';
-	import { deleteNotebook, like, updateBlocks } from './requests';
+	import RenameModal from './RenameModal.svelte';
 	import ShareModal from './ShareModal.svelte';
+	import { areSameBlocks } from './utils';
 
 	let { data }: PageProps = $props();
 
@@ -39,7 +43,7 @@
 		}
 	}
 
-	let blocks = $state<(EditionBlock | (typeof data.notebook.blocks)[number])[]>(
+	let blocks = $state<(EditionBlock & { executions?: ExecutionWithResultURL[] })[]>(
 		data.notebook.blocks.slice()
 	);
 
@@ -54,10 +58,15 @@
 		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0 });
 	}
 
+	const blocker = new PreventNavigation();
+
 	async function save(toUpdate: typeof blocks) {
+		if (areSameBlocks(data.notebook.blocks, toUpdate)) return;
+
 		const positionned = toUpdate.map((b, i) => ({ ...b, position: i }));
 		const updated = await updateBlocks(data.notebook.id, positionned);
 		if (updated) {
+			blocker.prevent = false;
 			data.notebook.blocks = updated;
 			blocks.forEach((block, i) => {
 				const next = updated[i];
@@ -71,6 +80,10 @@
 		}
 	}
 
+	$effect(() => {
+		blocker.prevent = !areSameBlocks(data.notebook.blocks, $state.snapshot(blocks));
+	});
+
 	function handleWindowKeydown(e: KeyboardEvent) {
 		const isMac = navigator.userAgent.includes('Macintosh');
 		const mod = isMac ? e.metaKey : e.ctrlKey;
@@ -83,6 +96,7 @@
 	}
 
 	let shareModal: ReturnType<typeof ShareModal>;
+	let renameModal: ReturnType<typeof RenameModal>;
 
 	async function handleDelete() {
 		moreNotebookSelect.close();
@@ -146,6 +160,16 @@
 					</button>
 				</li>
 				{#if data.isAuthor}
+					<li>
+						<button
+							onclick={() => {
+								renameModal.show();
+								moreNotebookSelect.close();
+							}}
+						>
+							<PencilSimpleLine size="14" />Rename
+						</button>
+					</li>
 					<li><span class="separator"></span></li>
 					<li>
 						<button class="danger" onclick={handleDelete}>
@@ -163,6 +187,7 @@
 	bind:this={shareModal}
 	disabled={!data.isAuthor}
 />
+<RenameModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={renameModal} />
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />
@@ -304,7 +329,6 @@
 		flex-wrap: wrap;
 		margin: 8px 0;
 		padding: 16px 0;
-		font-size: 14px;
 
 		& .updated_at {
 			display: flex;

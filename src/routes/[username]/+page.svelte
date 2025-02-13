@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { like } from '$lib/client/requests/notebooks';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
@@ -7,6 +8,21 @@
 
 	const trends = ['DeFi', 'Stablecoin', 'Base', 'Polymarket'];
 	let { data }: PageProps = $props();
+
+	let notebooks = $state.raw(data.notebooks);
+	async function handleLike(notebook: (typeof notebooks)[number], count: number) {
+		const index = notebooks.indexOf(notebook);
+		if (index === -1) return;
+		const l = await like(notebook.id, count);
+		if (!l) return;
+
+		const toAdd = l.count - notebook.userLike;
+		notebooks = notebooks.with(index, {
+			...notebook,
+			likes: notebook.likes + toAdd,
+			userLike: l.count
+		});
+	}
 </script>
 
 <svelte:head>
@@ -27,7 +43,7 @@
 </section>
 <section class="list">
 	<ul>
-		{#each data.notebooks as item}
+		{#each notebooks as item}
 			<li>
 				<div class="item-content">
 					<Profile handle={item.author.username} size={32} />
@@ -45,7 +61,14 @@
 					</div>
 				</div>
 
-				<div class="likes"><span>{item.likes}</span><Heart size={16} /></div>
+				<button
+					class="likes"
+					disabled={!data.authenticated || item.userLike === 10 || item.authorId === data.user?.id}
+					class:full={item.userLike > 0}
+					onclick={() => handleLike(item, item.userLike + 1)}
+				>
+					<span>{item.likes}</span><Heart size={16} />
+				</button>
 			</li>
 		{/each}
 	</ul>
@@ -179,20 +202,33 @@
 		display: flex;
 		align-items: center;
 		gap: 5px;
+
+		& > :global(svg) {
+			transition: scale 0.2s ease;
+		}
+
+		&.full > :global(svg) {
+			fill: currentColor;
+			color: hsl(0deg 61% 54%);
+		}
+
+		&:not(:disabled):hover > :global(svg) {
+			scale: 1.1;
+		}
 	}
 
 	button {
-		font-size: 14px;
 		font-weight: 500;
 		border: none;
-		cursor: pointer;
+
 		padding: 8px 16px;
 		color: hsl(0, 0%, 80%);
 		border-radius: 5px;
 		background-color: transparent;
 		transition: all 0.2s ease;
 
-		&:hover {
+		&:not(:disabled):hover {
+			cursor: pointer;
 			background-color: hsl(0, 0%, 8%);
 			color: hsl(0, 0%, 90%);
 		}

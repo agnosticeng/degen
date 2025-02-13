@@ -1,8 +1,7 @@
 <script lang="ts">
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import type { Like } from '$lib/server/repositories/likes';
-	import { easeCubicIn } from 'd3';
-	import { fly } from 'svelte/transition';
+	import debounce from 'p-debounce';
 
 	interface Props {
 		likes?: number;
@@ -17,44 +16,24 @@
 	const liked = $derived(Boolean(userLike?.count));
 	let counter = $state(userLike?.count ?? 0);
 
-	let pressed = $state(false);
-	let interval: ReturnType<typeof setInterval>;
-
-	const wait = (ms = 200) => new Promise((r) => setTimeout(r, ms));
+	let onLikeDebounced = $derived.by(() => {
+		if (onLike) return debounce(onLike, 200);
+	});
 
 	async function onPress() {
-		pressed = true;
 		if (counter === max) return;
-		await wait(200);
-		interval = setInterval(() => {
-			if (pressed) counter = Math.min(counter + 1, max);
-		}, 150);
-	}
-
-	function onRelease() {
-		pressed = false;
-		clearInterval(interval);
-
-		const count = userLike?.count ?? 0;
-		if (count === max || counter === 0 || count === counter) return;
-		onLike?.(counter);
+		counter = Math.min(counter + 1, max);
+		await onLikeDebounced?.(counter);
 	}
 </script>
 
 <button
 	onmousedown={onPress}
-	onmouseup={onRelease}
 	ontouchstart={onPress}
-	ontouchend={onRelease}
 	class="like"
 	class:full={liked}
-	{disabled}
+	disabled={disabled || counter === max}
 >
-	{#if pressed}
-		<span class="user-counter" transition:fly={{ y: 10, easing: easeCubicIn, duration: 150 }}>
-			+{counter}
-		</span>
-	{/if}
 	<Heart size="16" fill={liked ? 'currentColor' : 'none'} />
 	<span class="total-likes">{likes}</span>
 </button>
@@ -91,12 +70,5 @@
 		&.full > :global(svg) {
 			color: hsl(0deg 61% 54%);
 		}
-	}
-
-	.user-counter {
-		position: absolute;
-		left: 50%;
-		bottom: 100%;
-		transform: translate(-50%, -5px);
 	}
 </style>

@@ -30,9 +30,7 @@ class DrizzleLikeRepository implements LikeRepository {
 	}
 
 	async unlike(notebook: Notebook['id'], user: User['id']): Promise<void> {
-		const result = await this.db
-			.delete(likes)
-			.where(and(eq(likes.notebookId, notebook), eq(likes.userId, user)));
+		await this.db.delete(likes).where(and(eq(likes.notebookId, notebook), eq(likes.userId, user)));
 	}
 }
 

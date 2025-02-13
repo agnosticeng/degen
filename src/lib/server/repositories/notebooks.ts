@@ -13,7 +13,7 @@ export interface NotebookRepository {
 	list(
 		author?: User['id'],
 		user?: User['id']
-	): Promise<(Notebook & { likes: number; author: User })[]>;
+	): Promise<(Notebook & { likes: number; author: User; userLike: number })[]>;
 	create(data: NewNotebook): Promise<Notebook>;
 	read(
 		id: Notebook['id'] | Notebook['slug'],
@@ -34,8 +34,8 @@ class DrizzleNotebookRepository implements NotebookRepository {
 	async list(
 		author?: User['id'],
 		user?: User['id']
-	): Promise<(Notebook & { likes: number; author: User })[]> {
-		const sq = this.db.$with('notebook_likes').as(
+	): Promise<(Notebook & { likes: number; author: User; userLike: number })[]> {
+		const notebook_likes = this.db.$with('notebook_likes').as(
 			this.db
 				.select({
 					notebookId: likes.notebookId,
@@ -45,34 +45,46 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				.groupBy(likes.notebookId)
 		);
 
+		const user_like = this.db.$with('user_like').as(
+			this.db
+				.select(getTableColumns(likes))
+				.from(likes)
+				.where(user ? eq(likes.userId, user) : isNull(likes.userId))
+		);
+
 		const conditions: Parameters<typeof and> = [isNull(notebooks.deletedAt)];
 		if (author) conditions.push(eq(notebooks.authorId, author));
 		if (!user || user !== author) conditions.push(eq(notebooks.visibility, 'public'));
 
 		const rows = await this.db
-			.with(sq)
+			.with(notebook_likes, user_like)
 			.select({
 				...this.columns,
-				likes: sql<number>`COALESCE(${sq.likes}, 0)`.as('likes'),
+				likes: sql<number>`COALESCE(${notebook_likes.likes}, 0)`.as('likes'),
 				author_username: users.username,
 				author_externalId: users.externalId,
-				author_createdAt: users.createdAt
+				author_createdAt: users.createdAt,
+				current_user_likes: sql<number>`COALESCE(${user_like.count}, 0)`.as('current_user_likes')
 			})
 			.from(notebooks)
-			.leftJoin(sq, eq(sq.notebookId, notebooks.id))
+			.leftJoin(notebook_likes, eq(notebook_likes.notebookId, notebooks.id))
 			.innerJoin(users, eq(users.id, notebooks.authorId))
+			.leftJoin(user_like, eq(user_like.notebookId, notebooks.id))
 			.where(and(...conditions))
 			.orderBy((aliases) => [desc(aliases.likes), desc(aliases.updatedAt)]);
 
-		return rows.map(({ author_username, author_externalId, author_createdAt, ...row }) => ({
-			...row,
-			author: {
-				id: row.authorId,
-				username: author_username,
-				externalId: author_externalId,
-				createdAt: author_createdAt
-			}
-		}));
+		return rows.map(
+			({ author_username, author_externalId, author_createdAt, current_user_likes, ...row }) => ({
+				...row,
+				author: {
+					id: row.authorId,
+					username: author_username,
+					externalId: author_externalId,
+					createdAt: author_createdAt
+				},
+				userLike: current_user_likes
+			})
+		);
 	}
 
 	async create(data: NewNotebook): Promise<Notebook> {

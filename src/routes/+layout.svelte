@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { applyAction, enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
@@ -13,6 +14,16 @@
 	let openNewNotebook = $state(false);
 	let newNotebookModal = $state<ReturnType<typeof Modal>>();
 	let errorMessage = $state<string>('');
+
+	function login() {
+		location.href = `/login?redirectTo=${page.url.pathname}`;
+		invalidateAll();
+	}
+
+	function logout() {
+		location.href = '/logout';
+		invalidateAll();
+	}
 </script>
 
 <header>
@@ -24,13 +35,9 @@
 			</button>
 		{/if}
 		{#if data.authenticated}
-			<a href="/logout" data-sveltekit-preload-data="off">
-				<button class="sign-in">Log out</button>
-			</a>
+			<button class="sign-in" onclick={logout}>Log out</button>
 		{:else}
-			<a href="/login?redirectTo={page.url.pathname}" data-sveltekit-preload-data="off">
-				<button class="sign-in">Sign in</button>
-			</a>
+			<button class="sign-in" onclick={login}>Sign in</button>
 		{/if}
 		<Search size={20} />
 	</span>
@@ -130,7 +137,6 @@
 	}
 
 	button {
-		font-size: 14px;
 		font-weight: 500;
 		border: none;
 		cursor: pointer;
@@ -168,8 +174,8 @@
 		font-weight: 300;
 		font-size: 12px;
 		margin-top: 50px;
-		margin-bottom: 50px;
 		padding: 0 20px;
+		padding-bottom: 50px;
 	}
 
 	form {

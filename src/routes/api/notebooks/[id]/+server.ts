@@ -27,7 +27,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	const { author, likes, blocks, ...previous } = notebook;
 
 	const updated = await notebookRepository.update(
-		{ ...previous, visibility: data.visibility },
+		{ ...previous, visibility: data.visibility, title: data.title },
 		locals.user.id
 	);
 
@@ -36,6 +36,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
 interface Body {
 	visibility: Notebook['visibility'];
+	title: string;
 }
 
 function isBody(data: unknown): data is Body {
@@ -44,6 +45,8 @@ function isBody(data: unknown): data is Body {
 		data !== null &&
 		'visibility' in data &&
 		typeof data.visibility === 'string' &&
-		['private', 'public', 'unlisted'].includes(data.visibility)
+		['private', 'public', 'unlisted'].includes(data.visibility) &&
+		'title' in data &&
+		typeof data.title === 'string'
 	);
 }
