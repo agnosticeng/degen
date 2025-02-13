@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { applyAction, enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
@@ -16,13 +15,11 @@
 	let errorMessage = $state<string>('');
 
 	function login() {
-		location.href = `/login?redirectTo=${page.url.pathname}`;
-		invalidateAll();
+		window.open(`/login?redirectTo=${page.url.pathname}`, '_self');
 	}
 
 	function logout() {
-		location.href = '/logout';
-		invalidateAll();
+		window.open('/logout', '_self');
 	}
 </script>
 
