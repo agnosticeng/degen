@@ -174,8 +174,8 @@
 		font-weight: 300;
 		font-size: 12px;
 		margin-top: 50px;
-		margin-bottom: 50px;
 		padding: 0 20px;
+		padding-bottom: 50px;
 	}
 
 	form {
