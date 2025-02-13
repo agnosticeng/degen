@@ -1,29 +1,14 @@
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
-import { NotFound } from '$lib/server/repositories/errors';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
-import { withUsername } from '$lib/server/repositories/specifications/users';
-import { userRepository, type User } from '$lib/server/repositories/users';
+import { userRepository } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load = (async ({ url }) => {
-	let id: User['id'] | undefined;
-	if (url.searchParams.has('author')) id = await getAuthorId(url.searchParams.get('author')!);
-
-	return { notebooks: await notebookRepository.list(id) };
+export const load = (async (e) => {
+	return { notebooks: await notebookRepository.list(undefined, e.locals.user?.id) };
 }) satisfies PageServerLoad;
-
-async function getAuthorId(username: string): Promise<User['id'] | undefined> {
-	try {
-		const user = await userRepository.read(withUsername(username));
-		return user.id;
-	} catch (e) {
-		if (e instanceof NotFound) return undefined;
-		console.error(e);
-	}
-}
 
 export const actions = {
 	create_user: async ({ request, locals, cookies }) => {

@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { update } from '$lib/client/requests/notebooks';
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
-	import { update } from './requests';
 
 	interface Props {
 		notebook: Notebook;

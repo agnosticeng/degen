@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
@@ -16,7 +17,6 @@
 	import Cell from './Cell.svelte';
 	import LikeButton from './LikeButton.svelte';
 	import RenameModal from './RenameModal.svelte';
-	import { deleteNotebook, like, updateBlocks } from './requests';
 	import ShareModal from './ShareModal.svelte';
 
 	let { data }: PageProps = $props();

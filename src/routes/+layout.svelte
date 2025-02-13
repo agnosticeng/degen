@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { applyAction, enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
@@ -13,6 +14,16 @@
 	let openNewNotebook = $state(false);
 	let newNotebookModal = $state<ReturnType<typeof Modal>>();
 	let errorMessage = $state<string>('');
+
+	function login() {
+		location.href = `/login?redirectTo=${page.url.pathname}`;
+		invalidateAll();
+	}
+
+	function logout() {
+		location.href = '/logout';
+		invalidateAll();
+	}
 </script>
 
 <header>
@@ -24,12 +35,9 @@
 			</button>
 		{/if}
 		{#if data.authenticated}
-			<button class="sign-in" onclick={() => (location.href = '/logout')}>Log out</button>
+			<button class="sign-in" onclick={logout}>Log out</button>
 		{:else}
-			<button
-				class="sign-in"
-				onclick={() => (location.href = `/login?redirectTo=${page.url.pathname}`)}>Sign in</button
-			>
+			<button class="sign-in" onclick={login}>Sign in</button>
 		{/if}
 		<Search size={20} />
 	</span>

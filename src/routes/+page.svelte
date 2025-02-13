@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { like } from '$lib/client/requests/notebooks';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
@@ -6,6 +7,21 @@
 
 	const trends = ['DeFi', 'Stablecoin', 'Base', 'Polymarket'];
 	let { data }: PageProps = $props();
+
+	let notebooks = $state.raw(data.notebooks);
+	async function handleLike(notebook: (typeof notebooks)[number], count: number) {
+		const index = notebooks.indexOf(notebook);
+		if (index === -1) return;
+		const l = await like(notebook.id, count);
+		if (!l) return;
+
+		const toAdd = l.count - notebook.userLike;
+		notebooks = notebooks.with(index, {
+			...notebook,
+			likes: notebook.likes + toAdd,
+			userLike: l.count
+		});
+	}
 </script>
 
 <svelte:head>
@@ -19,7 +35,7 @@
 </section>
 <section class="list">
 	<ul>
-		{#each data.notebooks as item}
+		{#each notebooks as item}
 			<li>
 				<div class="item-content">
 					<Profile handle={item.author.username} size={32} />
@@ -33,11 +49,15 @@
 						</div>
 					</div>
 				</div>
-
-				<div class="likes">
+				<button
+					class="likes"
+					disabled={!data.authenticated || item.userLike === 10 || item.authorId === data.user?.id}
+					class:full={item.userLike > 0}
+					onclick={() => handleLike(item, item.userLike + 1)}
+				>
 					<span>{item.likes}</span>
 					<Heart size={16} />
-				</div>
+				</button>
 			</li>
 		{/each}
 	</ul>
@@ -47,7 +67,6 @@
 	button {
 		font-weight: 500;
 		border: none;
-		cursor: pointer;
 		padding: 8px 16px;
 		color: hsl(0, 0%, 80%);
 		border-radius: 5px;
@@ -55,7 +74,8 @@
 		transition: all 0.2s ease;
 	}
 
-	button:hover {
+	button:not(:disabled):hover {
+		cursor: pointer;
 		background: hsl(0, 0%, 8%);
 		color: hsl(0, 0%, 90%);
 	}
@@ -102,7 +122,8 @@
 	li {
 		width: 100%;
 		display: flex;
-		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
 		border: 1px solid hsl(0, 0%, 20%);
 		height: 100px;
 		padding: 20px;
@@ -112,6 +133,7 @@
 	.item-content {
 		display: flex;
 		align-items: center;
+		flex: 1;
 	}
 
 	.item-info {
@@ -153,5 +175,18 @@
 		display: flex;
 		align-items: center;
 		gap: 5px;
+
+		& > :global(svg) {
+			transition: scale 0.2s ease;
+		}
+
+		&.full > :global(svg) {
+			fill: currentColor;
+			color: hsl(0deg 61% 54%);
+		}
+
+		&:not(:disabled):hover > :global(svg) {
+			scale: 1.1;
+		}
 	}
 </style>
