@@ -10,6 +10,8 @@
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
+	import { PreventNavigation } from '$lib/navigation.svelte';
+	import type { ExecutionWithResultURL } from '$lib/server/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { PageProps } from './$types';
@@ -18,6 +20,7 @@
 	import LikeButton from './LikeButton.svelte';
 	import RenameModal from './RenameModal.svelte';
 	import ShareModal from './ShareModal.svelte';
+	import { areSameBlocks } from './utils';
 
 	let { data }: PageProps = $props();
 
@@ -40,7 +43,7 @@
 		}
 	}
 
-	let blocks = $state<(EditionBlock | (typeof data.notebook.blocks)[number])[]>(
+	let blocks = $state<(EditionBlock & { executions?: ExecutionWithResultURL[] })[]>(
 		data.notebook.blocks.slice()
 	);
 
@@ -55,10 +58,15 @@
 		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0 });
 	}
 
+	const blocker = new PreventNavigation();
+
 	async function save(toUpdate: typeof blocks) {
+		if (areSameBlocks(data.notebook.blocks, toUpdate)) return;
+
 		const positionned = toUpdate.map((b, i) => ({ ...b, position: i }));
 		const updated = await updateBlocks(data.notebook.id, positionned);
 		if (updated) {
+			blocker.prevent = false;
 			data.notebook.blocks = updated;
 			blocks.forEach((block, i) => {
 				const next = updated[i];
@@ -71,6 +79,10 @@
 			});
 		}
 	}
+
+	$effect(() => {
+		blocker.prevent = !areSameBlocks(data.notebook.blocks, $state.snapshot(blocks));
+	});
 
 	function handleWindowKeydown(e: KeyboardEvent) {
 		const isMac = navigator.userAgent.includes('Macintosh');
