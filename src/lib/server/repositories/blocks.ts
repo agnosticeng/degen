@@ -51,6 +51,7 @@ class DrizzleBlockRepository implements BlockRepository {
 				pinned: data.pinned,
 				position: data.position,
 				type: data.type,
+				metadata: data.metadata,
 				updatedAt
 			})
 			.where(eq(blocks.id, id))
