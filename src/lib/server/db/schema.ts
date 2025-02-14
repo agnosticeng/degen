@@ -1,3 +1,4 @@
+import type { ChartSettingsType } from '@agnosticeng/dv';
 import { relations, sql } from 'drizzle-orm';
 import {
 	check,
@@ -66,7 +67,11 @@ export const blocks = table(
 			.default(sql`(unixepoch())`),
 		updatedAt: int('updated_at', { mode: 'timestamp' })
 			.notNull()
-			.default(sql`(unixepoch())`)
+			.default(sql`(unixepoch())`),
+
+		metadata: text({ mode: 'json' })
+			.$type<ChartSettingsType | { chartType: 'table' } | null>()
+			.$defaultFn(() => sql<null>`NULL`)
 	},
 	(t) => [check('position_check', sql`${t.position} >= 0`)]
 );

@@ -11,9 +11,10 @@
 	import { renderMarkdown } from '$lib/markdown';
 	import type { ExecutionWithResultURL, ProxyResult } from '$lib/server/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
-	import { Table } from '@agnosticeng/dv';
+	import { Chart, Table } from '@agnosticeng/dv';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import ChartConfig from './ChartConfig.svelte';
 	import ExecutionSelect from './ExecutionSelect.svelte';
 	import './markdown.css';
 
@@ -122,6 +123,10 @@
 					bind:selected={selectedExecution!}
 					executions={$state.snapshot(block.executions)}
 				/>
+
+				{#if selectedExecution?.result}
+					<ChartConfig bind:settings={block.metadata!} columns={selectedExecution.result.meta} />
+				{/if}
 			</div>
 		{/if}
 	{/if}
@@ -143,7 +148,15 @@
 						{@html result}
 					{/if}
 					{#if typeof result === 'object' && block.type === 'sql'}
-						<Table data={result.data} columns={result.meta} />
+						{#if block.metadata?.chartType === 'table'}
+							<Table data={result.data} columns={result.meta} />
+						{/if}
+
+						{#if block.metadata?.chartType === 'candle' || block.metadata?.chartType === 'line'}
+							<div style="height: 360px">
+								<Chart data={result.data} settings={block.metadata} />
+							</div>
+						{/if}
 					{/if}
 					{#if error}
 						<span>{error}</span>

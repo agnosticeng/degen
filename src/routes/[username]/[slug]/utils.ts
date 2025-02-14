@@ -1,4 +1,5 @@
 import type { EditionBlock } from '$lib/server/repositories/blocks';
+import shallowEqual from 'lodash.isequal';
 
 export function areSameBlocks(left: EditionBlock[], right: EditionBlock[]) {
 	if (left.length !== right.length) return false;
@@ -7,15 +8,12 @@ export function areSameBlocks(left: EditionBlock[], right: EditionBlock[]) {
 
 function areSameBlock(a: EditionBlock, b: EditionBlock) {
 	return (
-		is(a, b, 'id') &&
-		is(a, b, 'content') &&
-		is(a, b, 'notebookId') &&
-		is(a, b, 'pinned') &&
-		is(a, b, 'position') &&
-		is(a, b, 'type')
+		Object.is(a.id, b.id) &&
+		Object.is(a.content, b.content) &&
+		Object.is(a.notebookId, b.notebookId) &&
+		Object.is(a.pinned, b.pinned) &&
+		Object.is(a.position, b.position) &&
+		Object.is(a.type, b.type) &&
+		shallowEqual(a.metadata, b.metadata)
 	);
-}
-
-function is<T, K extends keyof T>(a: T, b: T, key: K) {
-	return typeof a[key] === typeof b[key] && a[key] === b[key];
 }
