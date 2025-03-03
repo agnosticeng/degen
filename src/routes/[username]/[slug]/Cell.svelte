@@ -11,9 +11,10 @@
 	import { renderMarkdown } from '$lib/markdown';
 	import type { ExecutionWithResultURL, ProxyResult } from '$lib/server/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
-	import { Table } from '@agnosticeng/dv';
+	import { Chart, Table } from '@agnosticeng/dv';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import ChartConfig from './ChartConfig.svelte';
 	import ExecutionSelect from './ExecutionSelect.svelte';
 	import './markdown.css';
 
@@ -122,6 +123,10 @@
 					bind:selected={selectedExecution!}
 					executions={$state.snapshot(block.executions)}
 				/>
+
+				{#if selectedExecution?.result && !readonly}
+					<ChartConfig bind:settings={block.metadata!} columns={selectedExecution.result.meta} />
+				{/if}
 			</div>
 		{/if}
 	{/if}
@@ -143,7 +148,15 @@
 						{@html result}
 					{/if}
 					{#if typeof result === 'object' && block.type === 'sql'}
-						<Table data={result.data} columns={result.meta} />
+						{#if block.metadata?.type === 'table'}
+							<Table data={result.data} columns={result.meta} />
+						{/if}
+
+						{#if block.metadata?.type === 'candle' || block.metadata?.type === 'line' || block.metadata?.type === 'bar' || block.metadata?.type === 'h-bar'}
+							<div style="height: 350px">
+								<Chart data={result.data} settings={block.metadata} />
+							</div>
+						{/if}
 					{/if}
 					{#if error}
 						<span>{error}</span>
@@ -222,6 +235,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: end;
+
+		&:global(:has(> .chart-settings)) {
+			padding-right: 0;
+		}
 	}
 
 	.cell-header ~ .cell-content .output {
@@ -360,6 +377,10 @@
 		&.sql {
 			max-height: 370px;
 			overflow: auto;
+		}
+
+		&.sql :global(.chart [aria-label='tip']) {
+			--plot-background: hsl(0deg 0% 5%);
 		}
 	}
 

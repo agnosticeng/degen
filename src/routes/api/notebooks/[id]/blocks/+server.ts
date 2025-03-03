@@ -7,6 +7,7 @@ import {
 } from '$lib/server/repositories/blocks';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
 import { error, json } from '@sveltejs/kit';
+import shallowEqual from 'lodash.isequal';
 import type { RequestHandler } from './$types';
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
@@ -79,6 +80,7 @@ function CompareBlock(a: Block, b: Block) {
 		a.content === b.content &&
 		a.position === b.position &&
 		a.pinned === b.pinned &&
-		a.type === b.type
+		a.type === b.type &&
+		shallowEqual(a.metadata, b.metadata)
 	);
 }

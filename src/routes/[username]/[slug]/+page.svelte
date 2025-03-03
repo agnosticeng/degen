@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dev } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
@@ -55,7 +56,13 @@
 	});
 
 	function handleAdd(type: EditionBlock['type'], at: number) {
-		blocks.splice(at, 0, { content: '', type, pinned: false, position: 0 });
+		blocks.splice(at, 0, {
+			content: '',
+			type,
+			pinned: false,
+			position: 0,
+			metadata: type === 'sql' ? { type: 'table' } : null
+		});
 	}
 
 	const blocker = new PreventNavigation();
@@ -82,6 +89,7 @@
 
 	$effect(() => {
 		if (!data.isAuthor) return;
+		if (dev) return;
 		blocker.prevent = !areSameBlocks(data.notebook.blocks, $state.snapshot(blocks));
 	});
 
