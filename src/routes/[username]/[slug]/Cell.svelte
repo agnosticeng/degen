@@ -155,7 +155,7 @@
 		{/await}
 		{#if typeof block.id !== 'undefined' && 'executions' in block && !block.executions?.length}
 			<div class="output" style="font-size: 11px;">
-				<span>The data are being process. Please reload the page to see the results</span>
+				<span>Your data is being processed. Please reload the page to see the results</span>
 			</div>
 		{/if}
 		{#if open || block.pinned}

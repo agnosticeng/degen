@@ -81,6 +81,7 @@
 	}
 
 	$effect(() => {
+		if (!data.isAuthor) return;
 		blocker.prevent = !areSameBlocks(data.notebook.blocks, $state.snapshot(blocks));
 	});
 
