@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { spec_kind, type DrizzleSpecification, type Specification } from '.';
 import { users } from '../../db/schema';
 import type { User } from '../users';
@@ -35,7 +35,7 @@ export class UserUsernameSpecification implements DrizzleSpecification<User> {
 	}
 
 	toQuery() {
-		return and(isNotNull(users.username), eq(users.username, this.username));
+		return eq(users.username, this.username);
 	}
 }
 
