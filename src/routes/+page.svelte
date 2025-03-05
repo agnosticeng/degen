@@ -5,7 +5,6 @@
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import type { PageProps } from './$types';
 
-	const trends = ['DeFi', 'Stablecoin', 'Base', 'Polymarket'];
 	let { data }: PageProps = $props();
 
 	let notebooks = $state.raw(data.notebooks);
@@ -29,8 +28,8 @@
 </svelte:head>
 
 <section class="trends">
-	{#each trends as trend}
-		<button class="trend-button"><i>#</i>{trend}</button>
+	{#each data.trends as trend}
+		<button class="trend-button"><i>#</i>{trend.name}</button>
 	{/each}
 </section>
 <section class="list">
