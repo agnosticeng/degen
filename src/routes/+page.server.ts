@@ -74,7 +74,8 @@ export const actions = {
 				notebookId: notebook.id,
 				pinned: false,
 				position: 0,
-				type: 'markdown'
+				type: 'markdown',
+				metadata: null
 			}
 		]);
 
