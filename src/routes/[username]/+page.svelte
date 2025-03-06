@@ -1,14 +1,20 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
+	import type { Tag } from '$lib/server/repositories/tags';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	let notebooks = $state.raw(data.notebooks);
+	$effect(() => {
+		notebooks = data.notebooks;
+	});
 	async function handleLike(notebook: (typeof notebooks)[number], count: number) {
 		const index = notebooks.indexOf(notebook);
 		if (index === -1) return;
@@ -21,6 +27,14 @@
 			likes: notebook.likes + toAdd,
 			userLike: l.count
 		});
+	}
+
+	async function handleTrendClick(tag: Tag) {
+		const url = new URL(page.url);
+		if (url.searchParams.has('tags', tag.name)) url.searchParams.delete('tags', tag.name);
+		else url.searchParams.append('tags', tag.name);
+
+		await goto(url);
 	}
 </script>
 
@@ -37,7 +51,9 @@
 
 <section class="trends">
 	{#each data.trends as trend}
-		<button class="trend-button"><i>#</i>{trend.name}</button>
+		<button class="trend-button" onclick={(e) => handleTrendClick(trend)}
+			><i>#</i>{trend.name}</button
+		>
 	{/each}
 </section>
 <section class="list">
@@ -47,8 +63,23 @@
 				<div class="item-content">
 					<Profile handle={item.author.username} size={32} />
 					<div class="item-info">
-						<a href="/{item.author.username}/{item.slug}">
-							<h1><Pie /><span>{item.title}</span></h1>
+						<a
+							href="/{item.author.username}/{item.slug}"
+							onclick={(e) => e.target instanceof HTMLButtonElement && e.preventDefault()}
+						>
+							<h1>
+								<Pie /><span>{item.title}</span>
+								<div>
+									{#each item.tags as trend}
+										<button
+											class="trend-button"
+											style="margin-bottom: 0;"
+											aria-current={page.url.searchParams.has('tags', trend.name)}
+											onclick={() => handleTrendClick(trend)}><i>#</i>{trend.name}</button
+										>
+									{/each}
+								</div>
+							</h1>
 						</a>
 						<div class="author-info">
 							{#if item.author.id === data.user?.id}
@@ -168,6 +199,8 @@
 
 	.item-info h1 {
 		display: flex;
+		align-items: center;
+		gap: 10px;
 		font-size: 16px;
 		margin: 0 0 7px;
 		font-weight: 500;
