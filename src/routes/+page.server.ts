@@ -1,19 +1,36 @@
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
+import { withVisibilities } from '$lib/server/repositories/specifications/notebooks';
 import { tagsRepository } from '$lib/server/repositories/tags';
 import { userRepository } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load = (async (e) => {
+export const load = (async ({ locals, url }) => {
 	const [notebooks, trends] = await Promise.all([
-		notebookRepository.list(undefined, e.locals.user?.id),
+		notebookRepository.list(withVisibilities(['public'])),
 		tagsRepository.trends(5)
 	]);
 
-	return { notebooks, trends };
+	const tags = url.searchParams.getAll('tags');
+
+	return {
+		notebooks: notebooks
+			.map(({ likes, ...notebook }) => ({
+				...notebook,
+				likes: likes.reduce((acc, l) => acc + l.count, 0),
+				userLike: likes.find((l) => l.userId === locals.user?.id)?.count ?? 0
+			}))
+			.filter((n) => {
+				if (trends.length) {
+					return tags.every((t) => !!n.tags.find((tag) => tag.name === t));
+				}
+				return true;
+			}),
+		trends
+	};
 }) satisfies PageServerLoad;
 
 export const actions = {

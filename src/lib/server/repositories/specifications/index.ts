@@ -9,7 +9,7 @@ export interface Specification<T> {
 
 export interface DrizzleSpecification<T> extends Specification<T> {
 	readonly [spec_kind]: 'Drizzle';
-	toQuery(): SQL | undefined;
+	toQuery(): SQL;
 }
 
 export function isDrizzleSpecification<T>(spec: Specification<T>): spec is DrizzleSpecification<T> {
