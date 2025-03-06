@@ -7,7 +7,7 @@ import { userRepository } from '$lib/server/repositories/users';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load = (async ({ locals, params }) => {
+export const load = (async ({ locals, params, url }) => {
 	try {
 		const author = await userRepository.read(withUsername(params.username));
 
@@ -20,13 +20,22 @@ export const load = (async ({ locals, params }) => {
 
 		const trends = await tagsRepository.trends(5);
 
+		const tags = url.searchParams.getAll('tags');
+
 		return {
 			author,
-			notebooks: notebooks.map(({ likes, ...notebook }) => ({
-				...notebook,
-				likes: likes.reduce((acc, l) => acc + l.count, 0),
-				userLike: likes.find((l) => l.userId === locals.user?.id)?.count ?? 0
-			})),
+			notebooks: notebooks
+				.map(({ likes, ...notebook }) => ({
+					...notebook,
+					likes: likes.reduce((acc, l) => acc + l.count, 0),
+					userLike: likes.find((l) => l.userId === locals.user?.id)?.count ?? 0
+				}))
+				.filter((n) => {
+					if (trends.length) {
+						return tags.every((t) => !!n.tags.find((tag) => tag.name === t));
+					}
+					return true;
+				}),
 			trends
 		};
 	} catch (e) {
