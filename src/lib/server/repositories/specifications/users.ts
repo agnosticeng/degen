@@ -3,7 +3,7 @@ import { spec_kind, type DrizzleSpecification, type Specification } from '.';
 import { users } from '../../db/schema';
 import type { User } from '../users';
 
-export class UserIdSpecification implements DrizzleSpecification<User> {
+class UserIdSpecification implements DrizzleSpecification<User> {
 	constructor(private id: User['id']) {}
 
 	get [spec_kind]() {
@@ -23,7 +23,7 @@ export function withId(id: User['id']): Specification<User> {
 	return new UserIdSpecification(id);
 }
 
-export class UserUsernameSpecification implements DrizzleSpecification<User> {
+class UserUsernameSpecification implements DrizzleSpecification<User> {
 	constructor(private username: User['username']) {}
 
 	get [spec_kind]() {
@@ -43,7 +43,7 @@ export function withUsername(username: User['username']): Specification<User> {
 	return new UserUsernameSpecification(username);
 }
 
-export class UserExternalIdSpecification implements DrizzleSpecification<User> {
+class UserExternalIdSpecification implements DrizzleSpecification<User> {
 	constructor(private externalId: User['externalId']) {}
 
 	get [spec_kind]() {
