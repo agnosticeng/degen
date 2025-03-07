@@ -34,22 +34,27 @@ class DrizzleTagRepository implements TagRepository {
 
 	async setTags(notebook: Notebook['id'], _tags: NewTag[]): Promise<Tag[]> {
 		return await this.db.transaction(async (tx) => {
-			const rows = await tx
-				.insert(tags)
-				.values(_tags)
-				.onConflictDoUpdate({
-					target: [tags.name],
-					set: { name: sql`excluded.name` }
-				})
-				.returning();
-
 			await tx.delete(tagsToNotebooks).where(eq(tagsToNotebooks.notebookId, notebook));
 
-			await tx
-				.insert(tagsToNotebooks)
-				.values(rows.map((t) => ({ tagId: t.id, notebookId: notebook })));
+			if (_tags.length) {
+				const rows = await tx
+					.insert(tags)
+					.values(_tags)
+					.onConflictDoUpdate({
+						target: [tags.name],
+						set: { name: sql`excluded.name` }
+					})
+					.returning();
 
-			return rows;
+				if (rows.length) {
+					await tx
+						.insert(tagsToNotebooks)
+						.values(rows.map((t) => ({ tagId: t.id, notebookId: notebook })));
+				}
+				return rows;
+			}
+
+			return [];
 		});
 	}
 }
