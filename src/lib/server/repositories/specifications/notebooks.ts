@@ -3,7 +3,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { spec_kind, type DrizzleSpecification } from '.';
 import type { Notebook } from '../notebooks';
 
-class VisibilitiesSpecification implements DrizzleSpecification<Notebook> {
+class NotebookVisibilitySpecification implements DrizzleSpecification<Notebook> {
 	readonly [spec_kind] = 'Drizzle';
 
 	constructor(private visibilities: Notebook['visibility'][]) {}
@@ -18,10 +18,10 @@ class VisibilitiesSpecification implements DrizzleSpecification<Notebook> {
 }
 
 export function withVisibilities(visibilities: Notebook['visibility'][]) {
-	return new VisibilitiesSpecification(visibilities);
+	return new NotebookVisibilitySpecification(visibilities);
 }
 
-class AuthorSpecification implements DrizzleSpecification<Notebook> {
+class NotebookAuthorSpecification implements DrizzleSpecification<Notebook> {
 	readonly [spec_kind] = 'Drizzle';
 
 	constructor(private author: Notebook['authorId']) {}
@@ -36,5 +36,41 @@ class AuthorSpecification implements DrizzleSpecification<Notebook> {
 }
 
 export function withAuthor(author: Notebook['authorId']) {
-	return new AuthorSpecification(author);
+	return new NotebookAuthorSpecification(author);
+}
+
+class NotebookIdSpecification implements DrizzleSpecification<Notebook> {
+	readonly [spec_kind] = 'Drizzle';
+
+	constructor(private id: Notebook['id']) {}
+
+	satisfiedBy(entity: Notebook) {
+		return entity.id === this.id;
+	}
+
+	toQuery() {
+		return eq(notebooks.id, this.id);
+	}
+}
+
+export function withId(id: Notebook['id']) {
+	return new NotebookIdSpecification(id);
+}
+
+class NotebookSlugSpecification implements DrizzleSpecification<Notebook> {
+	readonly [spec_kind] = 'Drizzle';
+
+	constructor(private slug: Notebook['slug']) {}
+
+	satisfiedBy(entity: Notebook) {
+		return entity.slug === this.slug;
+	}
+
+	toQuery() {
+		return eq(notebooks.slug, this.slug);
+	}
+}
+
+export function withSlug(slug: Notebook['slug']) {
+	return new NotebookSlugSpecification(slug);
 }
