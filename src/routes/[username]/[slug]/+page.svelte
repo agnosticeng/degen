@@ -9,6 +9,7 @@
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
+	import TagIcon from '$lib/cmpnt/svg/tag.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import { PreventNavigation } from '$lib/navigation.svelte';
@@ -20,6 +21,7 @@
 	import Cell from './Cell.svelte';
 	import LikeButton from './LikeButton.svelte';
 	import RenameModal from './RenameModal.svelte';
+	import SetTagsModal from './SetTagsModal.svelte';
 	import ShareModal from './ShareModal.svelte';
 	import { areSameBlocks } from './utils';
 
@@ -29,9 +31,10 @@
 
 	let notebook = $state.raw(selectNotebook(data.notebook));
 	function selectNotebook(n: PageProps['data']['notebook']): Notebook {
-		const { author, blocks, likes, ...notebook } = n;
+		const { author, blocks, likes, tags, ...notebook } = n;
 		return notebook;
 	}
+
 	let likes = $state.raw(data.notebook.likes);
 	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
 	let userLike = $derived(likes.find((l) => l.userId === data.user?.id));
@@ -43,6 +46,8 @@
 			else likes = likes.with(index, l);
 		}
 	}
+
+	let tags = $state.raw(data.notebook.tags);
 
 	let blocks = $state<(EditionBlock & { executions?: ExecutionWithResultURL[] })[]>(
 		data.notebook.blocks.slice()
@@ -88,7 +93,7 @@
 	}
 
 	$effect(() => {
-		if (!data.isAuthor) return;
+		if (!data.isEditable) return;
 		if (dev) return;
 		blocker.prevent = !areSameBlocks(data.notebook.blocks, $state.snapshot(blocks));
 	});
@@ -98,7 +103,7 @@
 		const mod = isMac ? e.metaKey : e.ctrlKey;
 
 		if (mod && e.key === 's') {
-			if (!data.isAuthor) return;
+			if (!data.isEditable) return;
 			e.preventDefault();
 			save($state.snapshot(blocks));
 		}
@@ -106,6 +111,7 @@
 
 	let shareModal: ReturnType<typeof ShareModal>;
 	let renameModal: ReturnType<typeof RenameModal>;
+	let setTagsModal: ReturnType<typeof SetTagsModal>;
 
 	async function handleDelete() {
 		moreNotebookSelect.close();
@@ -141,13 +147,13 @@
 		<button class="share" onclick={() => shareModal.show()}>
 			<Globe size="16" />Share...
 		</button>
-		{#if data.isAuthor}
+		{#if data.isEditable}
 			<button class="save" onclick={() => save($state.snapshot(blocks))}>
 				<FloppyDiskBack size="16" />
 			</button>
 		{/if}
 		<LikeButton
-			disabled={data.isAuthor || !data.user}
+			disabled={data.isEditable || !data.authenticated}
 			likes={likeCount}
 			max={10}
 			{userLike}
@@ -168,7 +174,7 @@
 						<Globe size="14" />Share...
 					</button>
 				</li>
-				{#if data.isAuthor}
+				{#if data.isEditable}
 					<li>
 						<button
 							onclick={() => {
@@ -177,6 +183,16 @@
 							}}
 						>
 							<PencilSimpleLine size="14" />Rename
+						</button>
+					</li>
+					<li>
+						<button
+							onclick={() => {
+								setTagsModal.show();
+								moreNotebookSelect.close();
+							}}
+						>
+							<TagIcon size="14" />Set topics
 						</button>
 					</li>
 					<li><span class="separator"></span></li>
@@ -194,9 +210,10 @@
 	{notebook}
 	onSuccess={(n) => (notebook = n)}
 	bind:this={shareModal}
-	disabled={!data.isAuthor}
+	disabled={!data.isEditable}
 />
 <RenameModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={renameModal} />
+<SetTagsModal {notebook} {tags} onSuccess={(_tags) => (tags = _tags)} bind:this={setTagsModal} />
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />
@@ -210,14 +227,22 @@
 	</div>
 </div>
 
-<hr class:mx-bottom={!data.isAuthor} />
+{#if tags.length}
+	<div class="topics">
+		{#each tags as trend}
+			<span><i>#</i>{trend.name}</span>
+		{/each}
+	</div>
+{/if}
 
-{#if data.isAuthor}
+<hr class:mx-bottom={!data.isEditable} />
+
+{#if data.isEditable}
 	<AddBlock onNewBlock={(type) => handleAdd(type, 0)} />
 {/if}
 {#each blocks as block, i (block)}
-	<Cell bind:block={blocks[i]} onDelete={() => blocks.splice(i, 1)} readonly={!data.isAuthor} />
-	{#if data.isAuthor}
+	<Cell bind:block={blocks[i]} onDelete={() => blocks.splice(i, 1)} readonly={!data.isEditable} />
+	{#if data.isEditable}
 		<AddBlock onNewBlock={(type) => handleAdd(type, i + 1)} />
 	{/if}
 {/each}
@@ -346,6 +371,30 @@
 
 			& > :global(svg) {
 				color: hsl(0, 0%, 65%);
+			}
+		}
+	}
+
+	.topics {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px;
+		margin: 8px 0;
+		padding-bottom: 16px;
+
+		& > span {
+			padding: 8px 16px;
+			border: 1px solid hsl(0, 0%, 20%);
+			border-radius: 5px;
+			font-size: 12px;
+			font-weight: 400;
+			display: flex;
+			align-items: center;
+
+			& i {
+				font-variant: normal;
+				color: hsl(0, 0%, 33%);
 			}
 		}
 	}

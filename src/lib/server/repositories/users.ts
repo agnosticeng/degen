@@ -26,7 +26,7 @@ class DrizzleUserRepository implements UserRepository {
 	}
 
 	async read(spec: Specification<User>): Promise<User> {
-		if (!isDrizzleSpecification(spec)) throw TypeError('Invalid specification');
+		if (!isDrizzleSpecification(spec)) throw new TypeError('Invalid specification');
 
 		const user = await this.db.query.users.findFirst({ where: spec.toQuery() });
 
