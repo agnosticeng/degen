@@ -1,5 +1,5 @@
 import { LibsqlError } from '@libsql/client';
-import { and, asc, eq, getTableColumns, inArray, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, isNull } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
 import { blocks, notebooks } from '../db/schema';
 import type { Block } from './blocks';
@@ -18,9 +18,8 @@ export interface NotebookRepository {
 	): Promise<(Notebook & { likes: Like[]; author: User; tags: Tag[] })[]>;
 	create(data: NewNotebook): Promise<Notebook>;
 	read(
-		id: Notebook['id'] | Notebook['slug'],
-		user?: User['id']
-	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[] }>;
+		...specs: Specification<Notebook>[]
+	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[]; tags: Tag[] }>;
 	update(notebook: Notebook, user: User['id']): Promise<Notebook>;
 	delete(id: Notebook['id'], user: User['id']): Promise<void>;
 }
@@ -70,28 +69,25 @@ class DrizzleNotebookRepository implements NotebookRepository {
 	}
 
 	async read(
-		id: Notebook['id'] | Notebook['slug'],
-		user?: User['id']
-	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[] }> {
-		const notebook = await this.db.query.notebooks.findFirst({
+		...specs: Specification<Notebook>[]
+	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[]; tags: Tag[] }> {
+		if (!specs.every(isDrizzleSpecification)) throw new TypeError('Invalid specification');
+
+		const row = await this.db.query.notebooks.findFirst({
 			columns: { deletedAt: false },
-			where: and(
-				isNull(notebooks.deletedAt),
-				typeof id === 'number' ? eq(notebooks.id, id) : eq(notebooks.slug, id),
-				user
-					? or(inArray(notebooks.visibility, ['public', 'unlisted']), eq(notebooks.authorId, user))
-					: inArray(notebooks.visibility, ['public', 'unlisted'])
-			),
+			where: and(isNull(notebooks.deletedAt), ...specs.map((s) => s.toQuery())),
 			with: {
 				author: true,
 				blocks: { orderBy: asc(blocks.position) },
-				likes: true
+				likes: true,
+				tagsToNotebooks: { with: { tag: true } }
 			}
 		});
 
-		if (!notebook) throw new NotFound('Notebook not found for identifier' + id);
+		if (!row) throw new NotFound('Notebook not found');
 
-		return notebook;
+		const { tagsToNotebooks, ...notebook } = row;
+		return { ...notebook, tags: tagsToNotebooks.map((t) => t.tag) };
 	}
 
 	async update({ id, ...notebook }: Notebook, user: User['id']): Promise<Notebook> {
