@@ -234,6 +234,14 @@
 	</div>
 </div>
 
+{#if tags.length}
+	<div class="topics">
+		{#each tags as trend}
+			<span><i>#</i>{trend.name}</span>
+		{/each}
+	</div>
+{/if}
+
 <hr class:mx-bottom={!data.isEditable} />
 
 {#if data.isEditable}
@@ -370,6 +378,30 @@
 
 			& > :global(svg) {
 				color: hsl(0, 0%, 65%);
+			}
+		}
+	}
+
+	.topics {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px;
+		margin: 8px 0;
+		padding-bottom: 16px;
+
+		& > span {
+			padding: 8px 16px;
+			border: 1px solid hsl(0, 0%, 20%);
+			border-radius: 5px;
+			font-size: 12px;
+			font-weight: 400;
+			display: flex;
+			align-items: center;
+
+			& i {
+				font-variant: normal;
+				color: hsl(0, 0%, 33%);
 			}
 		}
 	}
