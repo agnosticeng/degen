@@ -1,6 +1,7 @@
 import { NotCreated, NotFound } from '$lib/server/repositories/errors';
 import { likeRepository } from '$lib/server/repositories/likes';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
+import { withId, withVisibilities } from '$lib/server/repositories/specifications/notebooks';
 import { error, isHttpError, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -13,7 +14,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	if (body.count < 1 || body.count > 10) error(400, { message: 'Invalid count parameter' });
 
 	try {
-		const notebook = await notebookRepository.read(notebookId, locals.user.id);
+		const notebook = await notebookRepository.read(
+			withId(Number(params.id)),
+			withVisibilities(['public', 'unlisted'])
+		);
 		if (notebook.authorId === locals.user.id)
 			error(403, { message: 'User cannot like his own notebook' });
 
