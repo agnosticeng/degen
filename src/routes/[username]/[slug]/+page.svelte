@@ -191,8 +191,13 @@
 	</div>
 </header>
 <ShareModal
-	{notebook}
-	onSuccess={(n) => (notebook = n)}
+	notebook={{ ...notebook, author: data.notebook.author }}
+	onSuccess={async (n) => {
+		if (notebook.slug !== n.slug)
+			await goto(`/${data.notebook.author.username}/${n.slug}`, { replaceState: true });
+
+		notebook = n;
+	}}
 	bind:this={shareModal}
 	disabled={!data.isAuthor}
 />

@@ -4,9 +4,10 @@
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
+	import type { User } from '$lib/server/repositories/users';
 
 	interface Props {
-		notebook: Notebook;
+		notebook: Notebook & { author: User };
 		onSuccess?: (notebook: Notebook) => void;
 		disabled?: boolean;
 	}
@@ -14,18 +15,31 @@
 	let { notebook, onSuccess, disabled = false }: Props = $props();
 	let open = $state(false);
 	let modal = $state<ReturnType<typeof Modal>>();
+	let error = $state('');
 
 	async function handleSubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
 		e.preventDefault();
+		error = '';
 
 		const formData = new FormData(e.currentTarget);
 		const visibility = formData.get('visibility');
+		const slug = formData.get('slug');
 
-		if (typeof visibility === 'string' && ['private', 'public', 'unlisted'].includes(visibility)) {
+		if (
+			typeof slug === 'string' &&
+			typeof visibility === 'string' &&
+			['private', 'public', 'unlisted'].includes(visibility)
+		) {
 			const updated = await update(notebook.id, {
 				visibility: visibility as Notebook['visibility'],
-				title: notebook.title
+				title: notebook.title,
+				slug
+			}).catch((e) => {
+				if (e instanceof Error) {
+					error = e.message;
+				}
 			});
+
 			if (!updated) return;
 
 			onSuccess?.(updated);
@@ -37,7 +51,9 @@
 		open = true;
 	}
 
-	let input = $state<HTMLInputElement>();
+	function handleKeypress(e: KeyboardEvent) {
+		if (!/[a-z0-9-]/.test(e.key)) e.preventDefault();
+	}
 </script>
 
 {#if open}
@@ -47,21 +63,26 @@
 
 			<h3>Notebook URL</h3>
 			<div class="link-group">
+				<span>{page.url.origin}/{notebook.author.username}/</span>
 				<input
-					bind:this={input}
-					name="url"
-					readonly
-					value="{page.url.origin}{page.url.pathname}"
-					onclick={() => input?.select()}
+					name="slug"
+					value={notebook.slug}
+					readonly={disabled}
+					required
+					min="3"
+					onkeypress={handleKeypress}
 				/>
 				<button
 					type="button"
 					class="bordered"
-					onclick={() => navigator.clipboard.writeText(input?.value ?? '')}
+					onclick={() => navigator.clipboard.writeText(page.url.toString())}
 				>
 					Copy
 				</button>
 			</div>
+			{#if error}
+				<div class="errors">{error}</div>
+			{/if}
 			{#if !disabled}
 				<h3>Access</h3>
 				<label class="access">
@@ -108,17 +129,31 @@
 	div.link-group {
 		display: flex;
 		align-items: center;
-		gap: 8px;
 
 		input {
 			outline: 0px;
 			padding: 8px;
 			padding-right: 24px;
+			margin-left: 4px;
 			background-color: transparent;
 			border-radius: 5px;
 			border: 1px solid hsl(0, 0%, 15%);
 			color: inherit;
 			width: 100%;
+
+			&:is(:focus-visible, :focus, :focus-within) {
+				border-color: hsl(0, 0%, 20%);
+			}
+
+			&:read-only {
+				margin-left: 0;
+				padding: 0;
+				border-color: transparent;
+			}
+		}
+
+		button {
+			margin-left: 8px;
 		}
 	}
 
@@ -144,6 +179,15 @@
 				background-image: none;
 			}
 		}
+	}
+
+	div.errors {
+		margin-top: 8px;
+		display: flex;
+		justify-content: center;
+		font-size: 12px;
+
+		color: hsl(0deg 100% 90%);
 	}
 
 	form div.actions {

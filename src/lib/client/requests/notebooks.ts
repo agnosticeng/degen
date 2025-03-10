@@ -21,12 +21,16 @@ export async function updateBlocks(id: Notebook['id'], blocks: EditionBlock[]) {
 
 export async function update(
 	id: Notebook['id'],
-	{ visibility, title }: { visibility: Notebook['visibility']; title: Notebook['title'] }
+	{
+		visibility,
+		title,
+		slug
+	}: { visibility: Notebook['visibility']; title: Notebook['title']; slug: Notebook['slug'] }
 ) {
 	const response = await fetch(`/api/notebooks/${id}`, {
 		method: 'PUT',
 		headers: { 'Content-type': 'application/json' },
-		body: JSON.stringify({ visibility, title })
+		body: JSON.stringify({ visibility, title, slug })
 	});
 
 	if (response.ok) {
@@ -39,6 +43,12 @@ export async function update(
 			updatedAt: new Date(body.notebook.updatedAt)
 		};
 	}
+
+	const error = (await response.json().catch(() => ({ message: response.statusText }))) as {
+		message: string;
+	};
+
+	throw new Error(error.message);
 }
 
 export async function deleteNotebook(id: Notebook['id']) {
