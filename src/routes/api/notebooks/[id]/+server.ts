@@ -1,4 +1,4 @@
-import { NotDeleted } from '$lib/server/repositories/errors';
+import { NotDeleted, NotUpdated } from '$lib/server/repositories/errors';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -26,17 +26,23 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	if (!notebook) error(404, 'Notebook not found');
 	const { author, likes, blocks, ...previous } = notebook;
 
-	const updated = await notebookRepository.update(
-		{ ...previous, visibility: data.visibility, title: data.title },
-		locals.user.id
-	);
+	try {
+		const updated = await notebookRepository.update(
+			{ ...previous, visibility: data.visibility, title: data.title, slug: data.slug },
+			locals.user.id
+		);
 
-	return json({ notebook: updated });
+		return json({ notebook: updated });
+	} catch (e) {
+		if (e instanceof NotUpdated) error(400, e.message);
+		error(500, 'Something went wrong');
+	}
 };
 
 interface Body {
 	visibility: Notebook['visibility'];
-	title: string;
+	title: Notebook['title'];
+	slug: Notebook['slug'];
 }
 
 function isBody(data: unknown): data is Body {
@@ -47,6 +53,8 @@ function isBody(data: unknown): data is Body {
 		typeof data.visibility === 'string' &&
 		['private', 'public', 'unlisted'].includes(data.visibility) &&
 		'title' in data &&
-		typeof data.title === 'string'
+		typeof data.title === 'string' &&
+		'slug' in data &&
+		typeof data.slug === 'string'
 	);
 }

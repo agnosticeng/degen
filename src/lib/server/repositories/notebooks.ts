@@ -1,8 +1,9 @@
+import { LibsqlError } from '@libsql/client';
 import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
 import { blocks, likes, notebooks, users } from '../db/schema';
 import type { Block } from './blocks';
-import { NotCreated, NotDeleted, NotFound } from './errors';
+import { NotCreated, NotDeleted, NotFound, NotUpdated } from './errors';
 import type { Like } from './likes';
 import type { User } from './users';
 
@@ -128,20 +129,28 @@ class DrizzleNotebookRepository implements NotebookRepository {
 	}
 
 	async update({ id, ...notebook }: Notebook, user: User['id']): Promise<Notebook> {
-		const [updated] = await this.db
-			.update(notebooks)
-			.set({
-				title: notebook.title,
-				slug: notebook.slug,
-				visibility: notebook.visibility,
-				updatedAt: new Date()
-			})
-			.where(and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user)))
-			.returning(this.columns);
+		try {
+			const [updated] = await this.db
+				.update(notebooks)
+				.set({
+					title: notebook.title,
+					slug: notebook.slug,
+					visibility: notebook.visibility,
+					updatedAt: new Date()
+				})
+				.where(and(isNull(notebooks.deletedAt), eq(notebooks.id, id), eq(notebooks.authorId, user)))
+				.returning(this.columns);
 
-		if (!updated) throw new Error('Notebook not updated');
+			if (!updated) throw new NotUpdated('Notebook not updated');
 
-		return updated;
+			return updated;
+		} catch (e) {
+			if (e instanceof LibsqlError && e.code === 'SQLITE_CONSTRAINT')
+				throw new NotUpdated('slug already used');
+
+			console.error(e);
+			throw e;
+		}
 	}
 
 	async delete(id: Notebook['id'], user: User['id']): Promise<void> {
