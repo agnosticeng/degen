@@ -2,10 +2,11 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
+	import Autocomplete from '$lib/cmpnt/Autocomplete.svelte';
+	import SearchBar from '$lib/cmpnt/SearchBar.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
-	import type { Tag } from '$lib/server/repositories/tags';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -29,28 +30,61 @@
 		});
 	}
 
-	async function handleTrendClick(tag: Tag) {
-		const url = new URL(page.url);
-		if (url.searchParams.has('tags', tag.name)) url.searchParams.delete('tags', tag.name);
-		else url.searchParams.append('tags', tag.name);
+	let search = $state(page.url.searchParams.get('q') ?? '');
+	$effect(() => {
+		const q = page.url.searchParams.get('q');
+		if (q?.length) search = q;
+	});
 
-		await goto(url);
+	async function handleSearch(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
+		e.preventDefault();
+
+		const formData = new FormData(e.currentTarget);
+		const q = formData.get('q');
+
+		if (typeof q !== 'string') return;
+
+		const url = new URL(page.url);
+		if (q.length) url.searchParams.set('q', q);
+		else url.searchParams.delete('q');
+
+		await goto(url, { keepFocus: true });
 	}
+
+	let autocomplete = $state<ReturnType<typeof Autocomplete>>();
+	let trends = $derived(data.trends.filter((t) => !search.includes(`tags:${t.name}`)));
 </script>
 
 <svelte:head>
 	<title>Degen</title>
 </svelte:head>
 
-<section class="trends">
-	{#each data.trends as trend}
-		<button
-			class="trend-button"
-			aria-current={page.url.searchParams.has('tags', trend.name)}
-			onclick={() => handleTrendClick(trend)}><i>#</i>{trend.name}</button
-		>
-	{/each}
-</section>
+<nav class="trends">
+	<form onsubmit={handleSearch}>
+		<SearchBar
+			name="q"
+			bind:value={search}
+			onfocus={(e) =>
+				e.currentTarget?.parentElement && autocomplete?.open(e.currentTarget.parentElement)}
+		/>
+		<Autocomplete bind:this={autocomplete} items={trends}>
+			{#snippet item(trend)}
+				<button
+					class="autocomplete-button"
+					type="button"
+					onclick={() => {
+						search = search.trim().concat(' ', `tags:${trend.name}`);
+						autocomplete?.close();
+						goto(`?${new URLSearchParams({ q: search }).toString()}`);
+					}}
+				>
+					<i>#</i>{trend.name}
+				</button>
+			{/snippet}
+		</Autocomplete>
+	</form>
+</nav>
+
 <section class="list">
 	<ul>
 		{#each notebooks as item}
@@ -58,27 +92,25 @@
 				<div class="item-content">
 					<Profile handle={item.author.username} size={32} />
 					<div class="item-info">
-						<a
-							href="/{item.author.username}/{item.slug}"
-							onclick={(e) => e.target instanceof HTMLButtonElement && e.preventDefault()}
-						>
-							<h1>
-								<Pie /><span>{item.title}</span>
-								<div>
-									{#each item.tags as trend}
-										<button
-											class="trend-button"
-											style="margin-bottom: 0;"
-											aria-current={page.url.searchParams.has('tags', trend.name)}
-											onclick={() => handleTrendClick(trend)}><i>#</i>{trend.name}</button
-										>
-									{/each}
-								</div>
-							</h1>
+						<a href="/{item.author.username}/{item.slug}">
+							<h1><Pie /><span>{item.title}</span></h1>
 						</a>
 						<div class="author-info">
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
+							<div>
+								{#each item.tags as trend}
+									<a href="?q={encodeURIComponent(`tags:${trend.name}`)}">
+										<button
+											class="trend-button"
+											style="margin-bottom: 0; margin-right: 4px"
+											aria-current={page.url.searchParams.get('q')?.includes(`tags:${trend.name}`)}
+										>
+											<i>#</i>{trend.name}
+										</button>
+									</a>
+								{/each}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -113,6 +145,16 @@
 		color: hsl(0, 0%, 90%);
 	}
 
+	nav {
+		display: flex;
+		justify-content: center;
+
+		form {
+			flex: auto;
+			max-width: 360px;
+		}
+	}
+
 	.trends {
 		max-width: 1024px;
 		margin: 0 auto;
@@ -120,28 +162,30 @@
 	}
 
 	.trend-button {
-		background: transparent;
-		border: 1px solid hsl(0, 0%, 20%);
+		background-color: hsl(0, 0%, 10%);
+		padding: 2px 4px;
+		border-radius: 4px;
 		margin-right: 10px;
 		margin-bottom: 10px;
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
+
+		& > i {
+			font-variant: normal;
+			color: hsl(0, 0%, 33%);
+			transition: color 0.2s ease;
+		}
 	}
 
-	.trend-button:hover {
-		background: transparent;
+	button.trend-button:not(:disabled):hover,
+	button.trend-button[aria-current='true'] {
+		background-color: hsl(0, 0%, 20%);
 		color: hsl(0, 0%, 90%);
-		border-color: hsl(0, 0%, 30%);
-	}
 
-	.trend-button[aria-current='true'] {
-		border-color: hsl(0, 0%, 40%);
-	}
-
-	i {
-		font-variant: normal;
-		color: hsl(0, 0%, 33%);
+		& > i {
+			color: hsl(0, 0%, 43%);
+		}
 	}
 
 	ul {
@@ -156,7 +200,7 @@
 		padding: 0 20px 20px;
 	}
 
-	li {
+	.list li {
 		width: 100%;
 		display: flex;
 		align-items: center;
@@ -222,6 +266,21 @@
 
 		&:not(:disabled):hover > :global(svg) {
 			scale: 1.1;
+		}
+	}
+
+	.autocomplete-button {
+		text-align: start;
+		width: 100%;
+
+		& > i {
+			font-variant: normal;
+			color: hsl(0, 0%, 33%);
+			transition: color 0.2s ease;
+		}
+
+		&:hover > i {
+			color: hsl(0, 0%, 43%);
 		}
 	}
 </style>

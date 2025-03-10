@@ -4,7 +4,6 @@
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
-	import Search from '$lib/cmpnt/svg/search.svelte';
 	import '$lib/styles/main.css';
 	import type { ActionData, LayoutProps } from './$types';
 
@@ -36,7 +35,6 @@
 		{:else}
 			<button class="sign-in" onclick={login}>Sign in</button>
 		{/if}
-		<Search size={20} />
 	</span>
 </header>
 {#if data.authenticated && !data.user}

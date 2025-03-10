@@ -1,5 +1,5 @@
 import { notebooks } from '$lib/server/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, like, sql } from 'drizzle-orm';
 import { spec_kind, type DrizzleSpecification } from '.';
 import type { Notebook } from '../notebooks';
 
@@ -73,4 +73,22 @@ class NotebookSlugSpecification implements DrizzleSpecification<Notebook> {
 
 export function withSlug(slug: Notebook['slug']) {
 	return new NotebookSlugSpecification(slug);
+}
+
+class NotebookSearchSpecification implements DrizzleSpecification<Notebook> {
+	readonly [spec_kind] = 'Drizzle';
+
+	constructor(private search: string) {}
+
+	satisfiedBy(entity: Notebook) {
+		return entity.title.toLowerCase().includes(this.search.toLowerCase());
+	}
+
+	toQuery() {
+		return like(sql`UPPER(${notebooks.title})`, `%${this.search.toUpperCase()}%`);
+	}
+}
+
+export function withSearch(search: string) {
+	return new NotebookSearchSpecification(search);
 }

@@ -1,4 +1,4 @@
-import { asc, desc, eq, getTableColumns, sql } from 'drizzle-orm';
+import { desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
 import { tags, tagsToNotebooks } from '../db/schema';
 import type { Notebook } from './notebooks';
@@ -7,27 +7,21 @@ export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
 
 export interface TagRepository {
-	all(): Promise<Tag[]>;
-	trends(limit?: number): Promise<Tag[]>;
+	trends(): Promise<Tag[]>;
 	setTags(notebook: Notebook['id'], tags: NewTag[]): Promise<Tag[]>;
 }
 
 class DrizzleTagRepository implements TagRepository {
 	constructor(private db: DrizzleDatabase) {}
 
-	async all(): Promise<Tag[]> {
-		return await this.db.select().from(tags).orderBy(asc(tags.createdAt));
-	}
-
-	async trends(limit: number = 5): Promise<Tag[]> {
+	async trends(): Promise<Tag[]> {
 		const rows = await this.db
 			.select({
 				...getTableColumns(tags),
 				counts: this.db.$count(tagsToNotebooks, eq(tagsToNotebooks.tagId, tags.id))
 			})
 			.from(tags)
-			.orderBy((t) => desc(t.counts))
-			.limit(limit);
+			.orderBy((t) => desc(t.counts));
 
 		return rows.map(({ counts, ...tag }) => tag);
 	}

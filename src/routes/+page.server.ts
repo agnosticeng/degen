@@ -1,20 +1,26 @@
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
-import { withVisibilities } from '$lib/server/repositories/specifications/notebooks';
+import type { Specification } from '$lib/server/repositories/specifications';
+import { withSearch, withVisibilities } from '$lib/server/repositories/specifications/notebooks';
 import { tagsRepository } from '$lib/server/repositories/tags';
 import { userRepository } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
+import { parse } from './search.utils';
 
 export const load = (async ({ locals, url }) => {
-	const [notebooks, trends] = await Promise.all([
-		notebookRepository.list(withVisibilities(['public'])),
-		tagsRepository.trends(5)
-	]);
+	const q = url.searchParams.get('q') ?? '';
+	const { tags, search } = parse(q);
 
-	const tags = url.searchParams.getAll('tags');
+	const specifications: Specification<Notebook>[] = [withVisibilities(['public'])];
+	if (search.length) specifications.push(withSearch(search));
+
+	const [notebooks, trends] = await Promise.all([
+		notebookRepository.list(...specifications),
+		tagsRepository.trends()
+	]);
 
 	return {
 		notebooks: notebooks

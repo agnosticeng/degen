@@ -41,7 +41,6 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			where: and(isNull(notebooks.deletedAt), ...specs.map((s) => s.toQuery())),
 			with: {
 				author: true,
-				blocks: true,
 				likes: true,
 				tagsToNotebooks: { with: { tag: true } }
 			}

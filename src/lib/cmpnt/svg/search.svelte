@@ -1,15 +1,21 @@
 <script lang="ts">
-	let { size = 20, color = 'currentColor', width = 2 } = $props();
+	import type { SvelteHTMLElements } from 'svelte/elements';
+
+	interface Props extends Omit<SvelteHTMLElements['svg'], 'width' | 'height'> {
+		size?: string | number | null;
+	}
+
+	let { size = 24, ...rest }: Props = $props();
 </script>
 
 <svg
-	xmlns="http://www.w3.org/2000/svg"
 	width={size}
 	height={size}
 	fill="none"
 	viewBox="0 0 24 24"
-	stroke-width={width}
-	stroke={color}
+	stroke-width="2"
+	stroke="currentColor"
+	{...rest}
 >
 	<path
 		stroke-linecap="round"
