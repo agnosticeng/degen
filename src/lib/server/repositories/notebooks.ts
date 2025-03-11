@@ -1,7 +1,18 @@
 import { LibsqlError } from '@libsql/client';
-import { and, asc, eq, getTableColumns, isNull } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	exists,
+	getTableColumns,
+	inArray,
+	isNull,
+	like,
+	sql
+} from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
-import { blocks, notebooks } from '../db/schema';
+import { blocks, likes, notebooks, tags, tagsToNotebooks, users } from '../db/schema';
 import type { Block } from './blocks';
 import { NotCreated, NotDeleted, NotFound, NotUpdated } from './errors';
 import type { Like } from './likes';
@@ -12,10 +23,18 @@ import type { User } from './users';
 export type Notebook = Omit<typeof notebooks.$inferSelect, 'deletedAt'>;
 type NewNotebook = Omit<Notebook, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
 
+interface NotebookListSpecs {
+	currentUserId?: User['id'];
+	authorId?: User['id'];
+	visibilities?: Notebook['visibility'][];
+	tags?: Tag['name'][];
+	search?: string;
+}
+
 export interface NotebookRepository {
 	list(
-		...specs: Specification<Notebook>[]
-	): Promise<(Notebook & { likes: Like[]; author: User; tags: Tag[] })[]>;
+		specs: NotebookListSpecs
+	): Promise<(Notebook & { likes: number; author: User; userLike: number; tags: Tag['name'][] })[]>;
 	create(data: NewNotebook): Promise<Notebook>;
 	read(
 		...specs: Specification<Notebook>[]
@@ -32,24 +51,83 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		return columns;
 	}
 
-	async list(
-		...specs: Specification<Notebook>[]
-	): Promise<(Notebook & { likes: Like[]; author: User; tags: Tag[] })[]> {
-		if (!specs.every(isDrizzleSpecification)) throw new TypeError('Invalid specification');
+	async list(specs: NotebookListSpecs) {
+		const notebook_likes = this.db.$with('notebook_likes').as(
+			this.db
+				.select({
+					notebookId: likes.notebookId,
+					likes: sql<number>`SUM(${likes.count})`.as('likes')
+				})
+				.from(likes)
+				.groupBy(likes.notebookId)
+		);
 
-		const rows = await this.db.query.notebooks.findMany({
-			where: and(isNull(notebooks.deletedAt), ...specs.map((s) => s.toQuery())),
-			with: {
-				author: true,
-				likes: true,
-				tagsToNotebooks: { with: { tag: true } }
-			}
-		});
+		const user_like = this.db.$with('user_like').as(
+			this.db
+				.select(getTableColumns(likes))
+				.from(likes)
+				.where(
+					typeof specs.currentUserId === 'undefined'
+						? isNull(likes.userId)
+						: eq(likes.userId, specs.currentUserId)
+				)
+		);
 
-		return rows.map(({ tagsToNotebooks, ...notebook }) => ({
-			...notebook,
-			tags: tagsToNotebooks.map((t) => t.tag)
-		}));
+		const notebook_tags = this.db.$with('notebook_tags').as(
+			this.db
+				.select({
+					notebookId: tagsToNotebooks.notebookId,
+					tags: sql<string[]>`JSON_GROUP_ARRAY(${tags.name})`.as('tags')
+				})
+				.from(tagsToNotebooks)
+				.leftJoin(tags, eq(tags.id, tagsToNotebooks.tagId))
+				.groupBy(tagsToNotebooks.notebookId)
+		);
+
+		const conditions: Parameters<typeof and> = [isNull(notebooks.deletedAt)];
+		if (typeof specs.authorId !== 'undefined')
+			conditions.push(eq(notebooks.authorId, specs.authorId));
+		if (specs.visibilities?.length)
+			conditions.push(inArray(notebooks.visibility, specs.visibilities));
+		if (specs.tags?.length)
+			conditions.push(
+				exists(
+					this.db
+						.select({ a: sql`1` })
+						.from(sql`json_each(${notebook_tags.tags})`)
+						.where(inArray(sql`value`, specs.tags))
+				)
+			);
+		if (specs.search)
+			conditions.push(like(sql`UPPER(${notebooks.title})`, `%${specs.search.toUpperCase()}%`));
+
+		return await this.db
+			.with(notebook_likes, user_like, notebook_tags)
+			.select({
+				...this.columns,
+				likes: sql<number>`COALESCE(${notebook_likes.likes}, 0)`.as('likes'),
+				author: {
+					id: users.id,
+					username: users.username,
+					externalId: users.externalId,
+					createdAt: users.createdAt
+				},
+				tags: sql`COALESCE(${notebook_tags.tags}, JSON_ARRAY())`
+					.mapWith({
+						mapFromDriverValue(value) {
+							return JSON.parse(value) as string[];
+						}
+					})
+					.as('tags'),
+				userLike: sql<number>`COALESCE(${user_like.count}, 0)`.as('current_user_likes')
+			})
+			.from(notebooks)
+			.leftJoin(notebook_likes, eq(notebook_likes.notebookId, notebooks.id))
+			.innerJoin(users, eq(users.id, notebooks.authorId))
+			.leftJoin(user_like, eq(user_like.notebookId, notebooks.id))
+			.leftJoin(notebook_tags, eq(notebook_tags.notebookId, notebooks.id))
+			.where(and(...conditions))
+			.orderBy((aliases) => [desc(aliases.likes), desc(aliases.createdAt)]);
 	}
 
 	async create(data: NewNotebook): Promise<Notebook> {

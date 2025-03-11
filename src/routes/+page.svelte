@@ -52,7 +52,7 @@
 	}
 
 	let autocomplete = $state<ReturnType<typeof Autocomplete>>();
-	let trends = $derived(data.trends.filter((t) => !search.includes(`tags:${t.name}`)));
+	let trends = $derived(data.trends.filter((t) => !search.includes(`#${t.name}`)));
 </script>
 
 <svelte:head>
@@ -73,7 +73,7 @@
 					class="autocomplete-button"
 					type="button"
 					onclick={() => {
-						search = search.trim().concat(' ', `tags:${trend.name}`);
+						search = search.trim().concat(' ', `#${trend.name}`);
 						autocomplete?.close();
 						goto(`?${new URLSearchParams({ q: search }).toString()}`);
 					}}
@@ -100,13 +100,13 @@
 							<h3>{item.createdAt.toDateString()}</h3>
 							<div>
 								{#each item.tags as trend}
-									<a href="?q={encodeURIComponent(`tags:${trend.name}`)}">
+									<a href="?q={encodeURIComponent(`#${trend}`)}">
 										<button
 											class="trend-button"
 											style="margin-bottom: 0; margin-right: 4px"
-											aria-current={page.url.searchParams.get('q')?.includes(`tags:${trend.name}`)}
+											aria-current={page.url.searchParams.get('q')?.includes(`#${trend}`)}
 										>
-											<i>#</i>{trend.name}
+											<i>#</i>{trend}
 										</button>
 									</a>
 								{/each}

@@ -1,4 +1,4 @@
-const TAGS_REGEXP = /tags:([^\s]+)/g;
+const TAGS_REGEXP = /#([^\s]+)/g;
 
 export function parse(q: string) {
 	return {

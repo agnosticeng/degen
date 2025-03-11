@@ -1,8 +1,6 @@
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
-import type { Specification } from '$lib/server/repositories/specifications';
-import { withSearch, withVisibilities } from '$lib/server/repositories/specifications/notebooks';
 import { tagsRepository } from '$lib/server/repositories/tags';
 import { userRepository } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
@@ -10,33 +8,21 @@ import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
 import { parse } from './search.utils';
 
-export const load = (async ({ locals, url }) => {
+export const load = (async ({ url, locals }) => {
 	const q = url.searchParams.get('q') ?? '';
 	const { tags, search } = parse(q);
 
-	const specifications: Specification<Notebook>[] = [withVisibilities(['public'])];
-	if (search.length) specifications.push(withSearch(search));
-
 	const [notebooks, trends] = await Promise.all([
-		notebookRepository.list(...specifications),
+		notebookRepository.list({
+			search,
+			tags,
+			visibilities: ['public'],
+			currentUserId: locals.user?.id
+		}),
 		tagsRepository.trends()
 	]);
 
-	return {
-		notebooks: notebooks
-			.map(({ likes, ...notebook }) => ({
-				...notebook,
-				likes: likes.reduce((acc, l) => acc + l.count, 0),
-				userLike: likes.find((l) => l.userId === locals.user?.id)?.count ?? 0
-			}))
-			.filter((n) => {
-				if (trends.length) {
-					return tags.every((t) => !!n.tags.find((tag) => tag.name === t));
-				}
-				return true;
-			}),
-		trends
-	};
+	return { notebooks, trends };
 }) satisfies PageServerLoad;
 
 export const actions = {
