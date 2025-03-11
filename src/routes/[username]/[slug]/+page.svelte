@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { dev } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
@@ -83,13 +82,13 @@
 				block.updatedAt = next.updatedAt;
 				block.position = next.position;
 				block.pinned = next.pinned;
+				block.metadata = next.metadata;
 			});
 		}
 	}
 
 	$effect(() => {
 		if (!data.isAuthor) return;
-		if (dev) return;
 		blocker.prevent = !areSameBlocks(data.notebook.blocks, $state.snapshot(blocks));
 	});
 
@@ -118,7 +117,10 @@
 
 		if (confirmed) {
 			const deleted = await deleteNotebook(notebook.id);
-			if (deleted) goto('/');
+			if (deleted) {
+				blocker.prevent = false;
+				goto('/');
+			}
 		}
 	}
 </script>
