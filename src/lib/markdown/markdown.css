@@ -14,4 +14,9 @@
 	}
 
 	padding: 10px;
+
+	a {
+		color: palevioletred;
+		text-decoration: underline;
+	}
 }
