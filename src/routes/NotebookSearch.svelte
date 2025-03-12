@@ -4,6 +4,7 @@
 	import Autocomplete from '$lib/cmpnt/Autocomplete.svelte';
 	import SearchBar from '$lib/cmpnt/SearchBar.svelte';
 	import type { Tag } from '$lib/server/repositories/tags';
+	import { parse } from './search.utils';
 
 	interface Props {
 		tags: Tag[];
@@ -17,10 +18,19 @@
 	$effect(() => {
 		search = page.url.searchParams.get('q') ?? '';
 	});
-	let trends = $derived(tags.filter((t) => !search.includes(`#${t.name}`)));
+	let trends = $derived.by(() => {
+		const filter = parse(
+			search,
+			tags.map((t) => t.name)
+		);
+
+		const filtered = tags.filter((t) => !filter.tags.includes(t.name));
+
+		return filter.search ? [filter.search, ...filtered] : filtered;
+	});
 
 	const searchURL = $derived.by(() => {
-		if (['/', '[username]'].includes(page.route.id ?? '')) {
+		if (['/', '/[username]'].includes(page.route.id ?? '')) {
 			return page.url;
 		}
 
@@ -43,6 +53,7 @@
 		else url.searchParams.delete('q');
 
 		await goto(url, { state: { searchBar: true } });
+		autocomplete?.close();
 	}
 </script>
 
@@ -55,18 +66,32 @@
 	/>
 	<Autocomplete bind:this={autocomplete} items={trends}>
 		{#snippet item(trend)}
-			<button
-				type="button"
-				onclick={() => {
-					search = search.trim().concat(' ', `#${trend.name}`).trim();
-					autocomplete?.close();
-					goto(`${searchURL.pathname}?${new URLSearchParams({ q: search }).toString()}`, {
-						state: { searchBar: true }
-					});
-				}}
-			>
-				<i>#</i>{trend.name}
-			</button>
+			{#if typeof trend === 'string'}
+				<button
+					type="button"
+					onclick={() => {
+						autocomplete?.close();
+						const url = new URL(searchURL);
+						url.searchParams.set('q', search);
+						goto(url, { state: { searchBar: true } });
+					}}
+				>
+					Search: {trend}
+				</button>
+			{:else}
+				<button
+					type="button"
+					onclick={() => {
+						search = search.trim().concat(' ', `#${trend.name}`).trim();
+						autocomplete?.close();
+						const url = new URL(searchURL);
+						url.searchParams.set('q', search);
+						goto(url, { state: { searchBar: true } });
+					}}
+				>
+					<i>#</i>{trend.name}
+				</button>
+			{/if}
 		{/snippet}
 	</Autocomplete>
 </form>

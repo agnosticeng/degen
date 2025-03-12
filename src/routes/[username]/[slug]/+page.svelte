@@ -194,7 +194,7 @@
 								moreNotebookSelect.close();
 							}}
 						>
-							<TagIcon size="14" />Set topics
+							<TagIcon size="14" />Set tags
 						</button>
 					</li>
 					<li><span class="separator"></span></li>
