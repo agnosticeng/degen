@@ -6,6 +6,7 @@ import {
 	type NewBlock
 } from '$lib/server/repositories/blocks';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
+import { withAuthor, withId } from '$lib/server/repositories/specifications/notebooks';
 import { error, json } from '@sveltejs/kit';
 import shallowEqual from 'lodash.isequal';
 import type { RequestHandler } from './$types';
@@ -17,7 +18,10 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	if (!isBody(data)) error(400, 'Invalid request body');
 	const { blocks } = data;
 
-	const notebook = await notebookRepository.read(Number(params.id), locals.user.id);
+	const notebook = await notebookRepository.read(
+		withId(Number(params.id)),
+		withAuthor(locals.user.id)
+	);
 	if (!notebook) error(404, 'Notebook not found');
 
 	const blockIDs = notebook.blocks.map((b) => b.id);

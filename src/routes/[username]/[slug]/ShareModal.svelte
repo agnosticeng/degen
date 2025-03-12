@@ -59,9 +59,9 @@
 {#if open}
 	<Modal bind:this={modal} onclose={() => (open = false)} --modal-max-width="560px">
 		<form onsubmit={handleSubmit}>
-			<h2><Globe size="16" /><span>Share</span></h2>
+			<h1><Globe size="16" /><span>Share</span></h1>
 
-			<h3>Notebook URL</h3>
+			<h2>Notebook URL</h2>
 			<div class="link-group">
 				<span>{page.url.origin}/{notebook.author.username}/</span>
 				<input
@@ -84,7 +84,7 @@
 				<div class="errors">{error}</div>
 			{/if}
 			{#if !disabled}
-				<h3>Access</h3>
+				<h2>Access</h2>
 				<label class="access">
 					<span>Visibility</span>
 					<select name="visibility" value={notebook.visibility} required {disabled}>
@@ -113,7 +113,7 @@
 		color: #dbdbdb;
 	}
 
-	h2 {
+	h1 {
 		margin: 0 0 12px;
 		font-size: 18px;
 		display: flex;
@@ -121,7 +121,7 @@
 		gap: 4px;
 	}
 
-	h3 {
+	h2 {
 		font-size: 16px;
 		font-weight: 400;
 	}

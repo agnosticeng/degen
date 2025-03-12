@@ -1,5 +1,6 @@
 import { NotDeleted, NotUpdated } from '$lib/server/repositories/errors';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
+import { withAuthor, withId } from '$lib/server/repositories/specifications/notebooks';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -22,7 +23,10 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	const data = await request.json();
 	if (!isBody(data)) error(400, 'Invalid request body');
 
-	const notebook = await notebookRepository.read(Number(params.id), locals.user.id);
+	const notebook = await notebookRepository.read(
+		withId(Number(params.id)),
+		withAuthor(locals.user.id)
+	);
 	if (!notebook) error(404, 'Notebook not found');
 	const { author, likes, blocks, ...previous } = notebook;
 

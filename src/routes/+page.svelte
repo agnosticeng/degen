@@ -1,14 +1,19 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import type { PageProps } from './$types';
+	import { getTagHref } from './search.utils';
 
-	const trends = ['DeFi', 'Stablecoin', 'Base', 'Polymarket'];
 	let { data }: PageProps = $props();
 
 	let notebooks = $state.raw(data.notebooks);
+	$effect(() => {
+		notebooks = data.notebooks;
+	});
+
 	async function handleLike(notebook: (typeof notebooks)[number], count: number) {
 		const index = notebooks.indexOf(notebook);
 		if (index === -1) return;
@@ -28,11 +33,19 @@
 	<title>Degen</title>
 </svelte:head>
 
-<section class="trends">
-	{#each trends as trend}
-		<button class="trend-button"><i>#</i>{trend}</button>
+<nav class="trends">
+	{#each data.trends.slice(0, 5) as trend}
+		<a href={getTagHref(new URL(page.url), trend.name)}>
+			<button
+				class="trend-button"
+				aria-current={page.url.searchParams.get('q')?.includes(`#${trend.name}`)}
+			>
+				<i>#</i>{trend.name}
+			</button>
+		</a>
 	{/each}
-</section>
+</nav>
+
 <section class="list">
 	<ul>
 		{#each notebooks as item}
@@ -46,6 +59,19 @@
 						<div class="author-info">
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
+							<div>
+								{#each item.tags as trend}
+									<a href={getTagHref(new URL(page.url), trend)}>
+										<button
+											class="trend-button"
+											style="margin-right: 4px"
+											aria-current={page.url.searchParams.get('q')?.includes(`#${trend}`)}
+										>
+											<i>#</i>{trend}
+										</button>
+									</a>
+								{/each}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -83,28 +109,38 @@
 	.trends {
 		max-width: 1024px;
 		margin: 0 auto;
-		padding: 30px 20px 20px 20px;
+		padding: 30px 20px 20px;
+
+		& > a > .trend-button {
+			margin-right: 10px;
+			margin-bottom: 10px;
+		}
 	}
 
 	.trend-button {
-		background: transparent;
-		border: 1px solid hsl(0, 0%, 20%);
-		margin-right: 10px;
-		margin-bottom: 10px;
+		background-color: hsl(0, 0%, 10%);
+		padding: 2px 4px;
+		border-radius: 4px;
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
-	}
+		line-height: 16px;
 
-	.trend-button:hover {
-		background: transparent;
-		color: hsl(0, 0%, 90%);
-		border-color: hsl(0, 0%, 30%);
-	}
+		& > i {
+			font-variant: normal;
+			color: hsl(0, 0%, 33%);
+			transition: color 0.2s ease;
+		}
 
-	i {
-		font-variant: normal;
-		color: hsl(0, 0%, 33%);
+		&:not(:disabled):hover,
+		&[aria-current='true'] {
+			background-color: hsl(0, 0%, 20%);
+			color: hsl(0, 0%, 90%);
+
+			& > i {
+				color: hsl(0, 0%, 43%);
+			}
+		}
 	}
 
 	ul {
@@ -119,7 +155,7 @@
 		padding: 0 20px 20px;
 	}
 
-	li {
+	.list li {
 		width: 100%;
 		display: flex;
 		align-items: center;
@@ -142,13 +178,11 @@
 
 	.item-info h1 {
 		display: flex;
+		align-items: center;
+		gap: 10px;
 		font-size: 16px;
 		margin: 0 0 7px;
 		font-weight: 500;
-	}
-
-	.item-info h1 span {
-		margin-left: 10px;
 	}
 
 	.author-info {

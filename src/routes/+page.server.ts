@@ -1,13 +1,28 @@
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
+import { tagsRepository } from '$lib/server/repositories/tags';
 import { userRepository } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
+import { parse } from './search.utils';
 
-export const load = (async (e) => {
-	return { notebooks: await notebookRepository.list(undefined, e.locals.user?.id) };
+export const load = (async ({ url, locals }) => {
+	const q = url.searchParams.get('q') ?? '';
+	const { tags, search } = parse(q);
+
+	const [notebooks, trends] = await Promise.all([
+		notebookRepository.list({
+			search,
+			tags,
+			visibilities: ['public'],
+			currentUserId: locals.user?.id
+		}),
+		tagsRepository.trends()
+	]);
+
+	return { notebooks, trends };
 }) satisfies PageServerLoad;
 
 export const actions = {

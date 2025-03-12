@@ -1,6 +1,7 @@
 import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
 import type { Like } from '$lib/server/repositories/likes';
 import type { Notebook } from '$lib/server/repositories/notebooks';
+import type { NewTag, Tag } from '$lib/server/repositories/tags';
 
 export async function updateBlocks(id: Notebook['id'], blocks: EditionBlock[]) {
 	const response = await fetch(`/api/notebooks/${id}/blocks`, {
@@ -72,5 +73,18 @@ export async function like(id: Notebook['id'], count: number) {
 			createdAt: new Date(body.like.createdAt),
 			updatedAt: new Date(body.like.updatedAt)
 		};
+	}
+}
+
+export async function setTags(notebook: Notebook['id'], tags: NewTag[]) {
+	const response = await fetch(`/api/notebooks/${notebook}/tags`, {
+		method: 'PUT',
+		headers: { 'Content-type': 'application/json' },
+		body: JSON.stringify({ tags })
+	});
+
+	if (response.ok) {
+		const data: { tags: (Tag & { createdAt: string })[] } = await response.json();
+		return data.tags.map((t) => ({ ...t, createdAt: new Date(t.createdAt) }));
 	}
 }

@@ -11,7 +11,9 @@ declare global {
 			authenticated: boolean;
 		}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			searchBar?: boolean;
+		}
 		// interface Platform {}
 	}
 
