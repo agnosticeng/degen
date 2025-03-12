@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { setTags } from '$lib/client/requests/notebooks';
 	import { getAlltags } from '$lib/client/requests/tags';
+	import Autocomplete from '$lib/cmpnt/Autocomplete.svelte';
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import TagIcon from '$lib/cmpnt/svg/tag.svelte';
 	import X from '$lib/cmpnt/svg/x.svelte';
@@ -20,12 +21,10 @@
 
 	let modal = $state<ReturnType<typeof Modal>>();
 	let open = $state(false);
+
 	export function show() {
 		open = true;
 		tags = _tags;
-		tick().then(() => {
-			if (input && !input.disabled) input.focus();
-		});
 	}
 
 	async function handleSubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
@@ -43,17 +42,21 @@
 	}
 
 	let input = $state<HTMLInputElement>();
-	let autocomplete = $state.raw<Tag[]>([]);
+	let autocompletions = $state.raw<Tag[]>([]);
 	let filter = $state('');
-	let displayAutoComplete = $derived(!!filter);
+	let autocomplete = $state<ReturnType<typeof Autocomplete>>();
+	const filteredTags = $derived(
+		autocompletions.filter(
+			(tag) => !tagNames.includes(tag.name) && tag.name.toLowerCase().includes(filter.toLowerCase())
+		)
+	);
 
-	$effect(() => {
-		if (displayAutoComplete) void getAlltags().then((t) => (autocomplete = t ?? []));
-	});
+	$effect(() => void getAlltags().then((t) => (autocompletions = t ?? [])));
 
-	function handleSelectTag(tag: Tag) {
+	async function handleSelectTag(tag: Tag) {
 		tags = tags.concat(tag);
-		filter = '';
+		await tick();
+		if (!filteredTags.length) autocomplete?.close();
 	}
 
 	function handleKeydown(e: KeyboardEvent & { currentTarget: HTMLInputElement }) {
@@ -70,11 +73,18 @@
 	<Modal bind:this={modal} onclose={() => (open = false)}>
 		<form onsubmit={handleSubmit}>
 			<h1><TagIcon size="16" /> Edit topics</h1>
-			<div class="form-group" role="presentation" onclick={() => input?.focus()}>
+			<div
+				class="form-group"
+				role="presentation"
+				onclick={(e) => {
+					e.stopPropagation();
+					input?.focus();
+				}}
+			>
 				<span>Topics<span>(separate with spaces)</span></span>
 				<div class="topics">
-					{#each tags as tag, i}
-						<span class="topic" onclick={(e) => e.stopPropagation()} role="presentation">
+					{#each tags as tag, i (tag.name)}
+						<span class="topic">
 							<i>#</i>
 							{tag.name}
 							<button type="button" onclick={() => remove(i)}><X size="12" /></button>
@@ -86,29 +96,24 @@
 						bind:this={input}
 						bind:value={filter}
 						onkeydown={handleKeydown}
+						onfocus={() => autocomplete?.open()}
 					/>
-					{#if displayAutoComplete}
-						<div
-							class="autocomplete"
-							style:top="{input.offsetTop + input.offsetHeight + 5}px"
-							style:left="{input.parentElement!.offsetLeft}px"
-							style:width="{input.parentElement!.offsetWidth}px"
-						>
-							<ul>
-								{#each autocomplete as tag (tag.name)}
-									{#if !tagNames.includes(tag.name) && tag.name
-											.toLowerCase()
-											.includes(filter.toLowerCase())}
-										<li>
-											<button type="button" onclick={() => handleSelectTag(tag)}>
-												{tag.name}
-											</button>
-										</li>
-									{/if}
-								{/each}
-							</ul>
-						</div>
-					{/if}
+					<Autocomplete
+						anchor={input?.parentElement}
+						items={filteredTags}
+						bind:this={autocomplete}
+						flip={false}
+					>
+						{#snippet item(tag)}
+							<button
+								type="button"
+								class="autocomplete-button"
+								onclick={() => handleSelectTag(tag)}
+							>
+								#{tag.name}
+							</button>
+						{/snippet}
+					</Autocomplete>
 				</div>
 			</div>
 			<div class="actions">
@@ -120,35 +125,19 @@
 {/if}
 
 <style>
-	.autocomplete {
-		position: absolute;
-		max-height: 65px;
-		overflow-y: auto;
+	:global(dialog):has(form) {
+		overflow: visible;
+	}
+
+	button.autocomplete-button {
+		padding: 8px 16px;
+		width: 100%;
+		text-align: start;
+		font-weight: 500;
 		background-color: hsl(0, 0%, 7%);
-		border: 1px solid hsl(0deg 0% 20%);
-		border-radius: 5px;
 
-		& > ul {
-			list-style: none;
-			margin: 0;
-			padding: 0;
-
-			& > li {
-				li ~ & {
-					border-top: 1px solid hsl(0deg 0% 20%);
-				}
-
-				& > button {
-					padding: 8px 16px;
-					width: 100%;
-					text-align: start;
-					font-weight: 500;
-
-					&:hover {
-						background-color: hsl(0, 0%, 10%);
-					}
-				}
-			}
+		&:hover {
+			background-color: hsl(0, 0%, 10%);
 		}
 	}
 
@@ -156,6 +145,7 @@
 		padding: 2rem;
 		background-color: hsl(0, 0%, 7%);
 		color: #dbdbdb;
+		border-radius: 6px;
 	}
 
 	h1 {
@@ -168,6 +158,7 @@
 
 	.form-group {
 		display: block;
+		margin-bottom: 16px;
 
 		& > span {
 			font-size: 12px;
@@ -192,18 +183,22 @@
 		border: 1px solid hsl(0deg 0% 20%);
 	}
 
-	.topics span.topic {
-		background: transparent;
-		padding: 8px 16px;
-		padding-right: 8px;
-		color: hsl(0, 0%, 80%);
-		border-radius: 5px;
-		border: 1px solid hsl(0, 0%, 20%);
+	span.topic {
+		background-color: hsl(0, 0%, 10%);
+		padding: 2px 4px;
+		border-radius: 4px;
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
+		line-height: 16px;
 		display: flex;
 		align-items: center;
+
+		& > i {
+			font-variant: normal;
+			color: hsl(0, 0%, 33%);
+			transition: color 0.2s ease;
+		}
 
 		& > button {
 			margin-left: 6px;
@@ -211,17 +206,10 @@
 			aspect-ratio: 1;
 			display: flex;
 			align-items: center;
-		}
 
-		&:hover {
-			background-color: transparent;
-			color: hsl(0, 0%, 90%);
-			border-color: hsl(0, 0%, 30%);
-		}
-
-		& i {
-			font-variant: normal;
-			color: hsl(0, 0%, 33%);
+			&:hover {
+				color: hsl(0, 0%, 90%);
+			}
 		}
 	}
 

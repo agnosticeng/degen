@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
+	import { getTagHref } from '../search.utils';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -12,6 +14,7 @@
 	$effect(() => {
 		notebooks = data.notebooks;
 	});
+
 	async function handleLike(notebook: (typeof notebooks)[number], count: number) {
 		const index = notebooks.indexOf(notebook);
 		if (index === -1) return;
@@ -31,12 +34,18 @@
 	<title>Degen • {data.author.username}</title>
 </svelte:head>
 
-<header>
-	<div class="author">
-		<Profile handle={data.author.username} size={32} />
-		<div class="username">{data.author.username}</div>
-	</div>
-</header>
+<nav class="trends">
+	{#each data.trends.slice(0, 5) as trend}
+		<a href={getTagHref(new URL(page.url), trend.name)}>
+			<button
+				class="trend-button"
+				aria-current={page.url.searchParams.get('q')?.includes(`#${trend.name}`)}
+			>
+				<i>#</i>{trend.name}
+			</button>
+		</a>
+	{/each}
+</nav>
 
 <section class="list">
 	<ul>
@@ -59,11 +68,16 @@
 							{/if}
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
-							<div>
+							<div class="notebook-trends">
 								{#each item.tags as trend}
-									<span class="trend">
-										<i>#</i>{trend}
-									</span>
+									<a href={getTagHref(new URL(page.url), trend)}>
+										<button
+											class="trend-button"
+											aria-current={page.url.searchParams.get('q')?.includes(`#${trend}`)}
+										>
+											<i>#</i>{trend}
+										</button>
+									</a>
 								{/each}
 							</div>
 						</div>
@@ -84,52 +98,46 @@
 </section>
 
 <style>
-	header {
-		width: 100%;
-		max-width: 1024px;
-		margin: 16px auto;
-		padding: 0 20px;
-
+	div.notebook-trends {
 		display: flex;
-		gap: 6px;
+		align-items: center;
+		gap: 4px;
+	}
 
-		& > div.author {
-			flex: 1;
-			overflow: hidden;
+	.trends {
+		max-width: 1024px;
+		margin: 0 auto;
+		padding: 30px 20px 20px;
 
-			display: flex;
-			align-items: center;
-			gap: 8px;
-
-			& > :global(div.avatar) {
-				flex-shrink: 0;
-			}
-
-			& > div.username {
-				flex: 1;
-				font-weight: 500;
-
-				text-overflow: ellipsis;
-				white-space: nowrap;
-				overflow: hidden;
-			}
+		& > a > .trend-button {
+			margin-right: 10px;
+			margin-bottom: 10px;
 		}
 	}
 
-	.trend {
+	.trend-button {
 		background-color: hsl(0, 0%, 10%);
 		padding: 2px 4px;
 		border-radius: 4px;
-		margin-right: 10px;
-		margin-bottom: 10px;
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
+		line-height: 16px;
 
 		& > i {
 			font-variant: normal;
 			color: hsl(0, 0%, 33%);
 			transition: color 0.2s ease;
+		}
+
+		&:not(:disabled):hover,
+		&[aria-current='true'] {
+			background-color: hsl(0, 0%, 20%);
+			color: hsl(0, 0%, 90%);
+
+			& > i {
+				color: hsl(0, 0%, 43%);
+			}
 		}
 	}
 
@@ -173,10 +181,6 @@
 		font-size: 16px;
 		margin: 0 0 7px;
 		font-weight: 500;
-	}
-
-	.item-info h1 span {
-		margin-left: 10px;
 	}
 
 	.author-info {

@@ -1,17 +1,19 @@
 <script lang="ts" generics="T">
+	import { useResizeObserver } from '$lib/states/useResizeObserver.svelte';
 	import { computePosition, flip, offset, shift, size } from '@floating-ui/dom';
 	import type { Snippet } from 'svelte';
 	import { fly } from 'svelte/transition';
 
 	interface Props {
 		items: T[];
-		anchor?: HTMLElement;
+		anchor?: HTMLElement | null;
 		item?: Snippet<[T]>;
 		empty?: Snippet;
 		onClose?: () => void;
+		flip?: boolean;
 	}
 
-	let { items, anchor, item, empty, onClose }: Props = $props();
+	let { items, anchor, item, empty, onClose, flip: activeFlip = true }: Props = $props();
 
 	let opened = $state(false);
 	let dropdown = $state<HTMLElement>();
@@ -21,7 +23,7 @@
 		onClose?.();
 	}
 
-	export function open(target?: HTMLElement) {
+	export function open(target?: HTMLElement | null) {
 		if (target) anchor = target;
 		opened = true;
 	}
@@ -39,7 +41,7 @@
 						}
 					}),
 					offset(5),
-					flip(),
+					activeFlip ? flip() : null,
 					shift({ padding: 5 })
 				]
 			});
@@ -53,6 +55,8 @@
 
 		close();
 	}
+
+	useResizeObserver(() => anchor, updatePosition);
 </script>
 
 <svelte:window onresize={updatePosition} onscroll={updatePosition} onclick={handleClickOutside} />

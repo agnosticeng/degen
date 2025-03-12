@@ -33,11 +33,11 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		padding: 5px 10px;
+		padding: 0px 10px;
 
 		& > input {
 			flex: 1;
-			height: 32px;
+			height: 30px;
 		}
 
 		&:has(> input:is(:focus-within, :hover)) {

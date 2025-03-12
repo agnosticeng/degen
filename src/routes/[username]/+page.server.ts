@@ -1,13 +1,15 @@
 import { NotFound } from '$lib/server/repositories/errors';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
 import { withUsername } from '$lib/server/repositories/specifications/users';
-import { tagsRepository } from '$lib/server/repositories/tags';
 import { userRepository } from '$lib/server/repositories/users';
 import { error } from '@sveltejs/kit';
+import { parse } from '../search.utils';
 import type { PageServerLoad } from './$types';
 
-export const load = (async ({ locals, params }) => {
+export const load = (async ({ url, locals, params }) => {
 	try {
+		const { search, tags } = parse(url.searchParams.get('q') ?? '');
+
 		const author = await userRepository.read(withUsername(params.username));
 
 		const visibilities: Notebook['visibility'][] = ['public'];
@@ -16,12 +18,12 @@ export const load = (async ({ locals, params }) => {
 		const notebooks = await notebookRepository.list({
 			currentUserId: locals.user?.id,
 			authorId: author.id,
-			visibilities
+			visibilities,
+			search,
+			tags
 		});
 
-		const trends = await tagsRepository.trends();
-
-		return { author, notebooks, trends };
+		return { author, notebooks };
 	} catch (e) {
 		if (e instanceof NotFound) error(404, { message: e.message });
 

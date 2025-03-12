@@ -1,13 +1,11 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
-	import Autocomplete from '$lib/cmpnt/Autocomplete.svelte';
-	import SearchBar from '$lib/cmpnt/SearchBar.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import type { PageProps } from './$types';
+	import { getTagHref } from './search.utils';
 
 	let { data }: PageProps = $props();
 
@@ -29,30 +27,6 @@
 			userLike: l.count
 		});
 	}
-
-	let search = $state(page.url.searchParams.get('q') ?? '');
-	$effect(() => {
-		const q = page.url.searchParams.get('q');
-		if (q?.length) search = q;
-	});
-
-	async function handleSearch(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
-		e.preventDefault();
-
-		const formData = new FormData(e.currentTarget);
-		const q = formData.get('q');
-
-		if (typeof q !== 'string') return;
-
-		const url = new URL(page.url);
-		if (q.length) url.searchParams.set('q', q);
-		else url.searchParams.delete('q');
-
-		await goto(url, { keepFocus: true });
-	}
-
-	let autocomplete = $state<ReturnType<typeof Autocomplete>>();
-	let trends = $derived(data.trends.filter((t) => !search.includes(`#${t.name}`)));
 </script>
 
 <svelte:head>
@@ -60,29 +34,16 @@
 </svelte:head>
 
 <nav class="trends">
-	<form onsubmit={handleSearch}>
-		<SearchBar
-			name="q"
-			bind:value={search}
-			onfocus={(e) =>
-				e.currentTarget?.parentElement && autocomplete?.open(e.currentTarget.parentElement)}
-		/>
-		<Autocomplete bind:this={autocomplete} items={trends}>
-			{#snippet item(trend)}
-				<button
-					class="autocomplete-button"
-					type="button"
-					onclick={() => {
-						search = search.trim().concat(' ', `#${trend.name}`);
-						autocomplete?.close();
-						goto(`?${new URLSearchParams({ q: search }).toString()}`);
-					}}
-				>
-					<i>#</i>{trend.name}
-				</button>
-			{/snippet}
-		</Autocomplete>
-	</form>
+	{#each data.trends.slice(0, 5) as trend}
+		<a href={getTagHref(new URL(page.url), trend.name)}>
+			<button
+				class="trend-button"
+				aria-current={page.url.searchParams.get('q')?.includes(`#${trend.name}`)}
+			>
+				<i>#</i>{trend.name}
+			</button>
+		</a>
+	{/each}
 </nav>
 
 <section class="list">
@@ -100,10 +61,10 @@
 							<h3>{item.createdAt.toDateString()}</h3>
 							<div>
 								{#each item.tags as trend}
-									<a href="?q={encodeURIComponent(`#${trend}`)}">
+									<a href={getTagHref(new URL(page.url), trend)}>
 										<button
 											class="trend-button"
-											style="margin-bottom: 0; margin-right: 4px"
+											style="margin-right: 4px"
 											aria-current={page.url.searchParams.get('q')?.includes(`#${trend}`)}
 										>
 											<i>#</i>{trend}
@@ -145,46 +106,40 @@
 		color: hsl(0, 0%, 90%);
 	}
 
-	nav {
-		display: flex;
-		justify-content: center;
-
-		form {
-			flex: auto;
-			max-width: 360px;
-		}
-	}
-
 	.trends {
 		max-width: 1024px;
 		margin: 0 auto;
-		padding: 30px 20px 20px 20px;
+		padding: 30px 20px 20px;
+
+		& > a > .trend-button {
+			margin-right: 10px;
+			margin-bottom: 10px;
+		}
 	}
 
 	.trend-button {
 		background-color: hsl(0, 0%, 10%);
 		padding: 2px 4px;
 		border-radius: 4px;
-		margin-right: 10px;
-		margin-bottom: 10px;
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
+		line-height: 16px;
 
 		& > i {
 			font-variant: normal;
 			color: hsl(0, 0%, 33%);
 			transition: color 0.2s ease;
 		}
-	}
 
-	button.trend-button:not(:disabled):hover,
-	button.trend-button[aria-current='true'] {
-		background-color: hsl(0, 0%, 20%);
-		color: hsl(0, 0%, 90%);
+		&:not(:disabled):hover,
+		&[aria-current='true'] {
+			background-color: hsl(0, 0%, 20%);
+			color: hsl(0, 0%, 90%);
 
-		& > i {
-			color: hsl(0, 0%, 43%);
+			& > i {
+				color: hsl(0, 0%, 43%);
+			}
 		}
 	}
 
@@ -266,21 +221,6 @@
 
 		&:not(:disabled):hover > :global(svg) {
 			scale: 1.1;
-		}
-	}
-
-	.autocomplete-button {
-		text-align: start;
-		width: 100%;
-
-		& > i {
-			font-variant: normal;
-			color: hsl(0, 0%, 33%);
-			transition: color 0.2s ease;
-		}
-
-		&:hover > i {
-			color: hsl(0, 0%, 43%);
 		}
 	}
 </style>

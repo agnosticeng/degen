@@ -236,8 +236,8 @@
 
 {#if tags.length}
 	<div class="topics">
-		{#each tags as trend}
-			<span><i>#</i>{trend.name}</span>
+		{#each tags as topic}
+			<span><i>#</i>{topic.name}</span>
 		{/each}
 	</div>
 {/if}
@@ -391,17 +391,18 @@
 		padding-bottom: 16px;
 
 		& > span {
-			padding: 8px 16px;
-			border: 1px solid hsl(0, 0%, 20%);
-			border-radius: 5px;
-			font-size: 12px;
+			background-color: hsl(0, 0%, 10%);
+			padding: 2px 4px;
+			border-radius: 4px;
 			font-weight: 400;
-			display: flex;
-			align-items: center;
+			transition: all 0.2s ease;
+			font-size: 12px;
+			line-height: 16px;
 
-			& i {
+			& > i {
 				font-variant: normal;
 				color: hsl(0, 0%, 33%);
+				transition: color 0.2s ease;
 			}
 		}
 	}

@@ -4,8 +4,11 @@
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
+	import Search from '$lib/cmpnt/svg/search.svelte';
+	import X from '$lib/cmpnt/svg/x.svelte';
 	import '$lib/styles/main.css';
 	import type { ActionData, LayoutProps } from './$types';
+	import NotebookSearch from './NotebookSearch.svelte';
 
 	let { data, children }: LayoutProps = $props();
 
@@ -20,21 +23,44 @@
 	function logout() {
 		window.open('/logout', '_self');
 	}
+
+	let searchBarVisible = $state(false);
+	const pathname = $derived(page.url.pathname);
+	const searchBarPageState = $derived(page.state.searchBar ?? false);
+	$effect(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		pathname; // effect dependency
+		searchBarVisible = searchBarPageState;
+	});
 </script>
 
 <header>
-	<a href="/"><Logo /></a>
 	<span>
-		{#if data.user}
-			<button class="new" onclick={() => (openNewNotebook = true)} disabled={!data.user.username}>
-				<PlusCircle size="16" /> New
-			</button>
+		<a href="/"><Logo /></a>
+	</span>
+	{#if searchBarVisible}
+		<NotebookSearch tags={data.trends} />
+	{/if}
+	<span style="justify-content: end;">
+		{#if !searchBarVisible}
+			{#if data.user}
+				<button class="new" onclick={() => (openNewNotebook = true)} disabled={!data.user.username}>
+					<PlusCircle size="16" /> New
+				</button>
+			{/if}
+			{#if data.authenticated}
+				<button class="sign-in" onclick={logout}>Log out</button>
+			{:else}
+				<button class="sign-in" onclick={login}>Sign in</button>
+			{/if}
 		{/if}
-		{#if data.authenticated}
-			<button class="sign-in" onclick={logout}>Log out</button>
-		{:else}
-			<button class="sign-in" onclick={login}>Sign in</button>
-		{/if}
+		<button class="icon-button" onclick={() => (searchBarVisible = !searchBarVisible)}>
+			{#if searchBarVisible}
+				<X size="20" />
+			{:else}
+				<Search size="20" />
+			{/if}
+		</button>
 	</span>
 </header>
 {#if data.authenticated && !data.user}
@@ -128,6 +154,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 10px;
 		height: 48px;
 	}
 
@@ -155,11 +182,28 @@
 		background: transparent;
 	}
 
+	button.icon-button {
+		background-color: transparent;
+		padding: 6px;
+
+		&:hover {
+			background-color: hsl(0, 0%, 8%);
+			color: hsl(0, 0%, 90%);
+		}
+	}
+
 	header span {
 		height: 24px;
 		display: flex;
 		align-items: center;
 		gap: 10px;
+		flex: 1;
+	}
+
+	header > :global(form) {
+		flex: auto;
+		max-width: 1024px;
+		padding: 0 20px;
 	}
 
 	footer {
@@ -220,7 +264,7 @@
 		background: transparent;
 	}
 
-	form div.errors {
+	form.create-user div.errors {
 		display: flex;
 		justify-content: center;
 		font-size: 12px;
