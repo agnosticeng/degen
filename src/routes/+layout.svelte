@@ -2,9 +2,14 @@
 	import { applyAction, enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import Modal from '$lib/cmpnt/Modal.svelte';
+	import Select from '$lib/cmpnt/Select.svelte';
+	import DocumentChartBar from '$lib/cmpnt/svg/document-chart-bar.svelte';
+	import Lock from '$lib/cmpnt/svg/lock.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
+	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Search from '$lib/cmpnt/svg/search.svelte';
+	import SignOut from '$lib/cmpnt/svg/sign-out.svelte';
 	import X from '$lib/cmpnt/svg/x.svelte';
 	import '$lib/styles/main.css';
 	import type { ActionData, LayoutProps } from './$types';
@@ -32,6 +37,8 @@
 		pathname; // effect dependency
 		searchBarVisible = searchBarPageState;
 	});
+
+	let userSelect = $state<ReturnType<typeof Select>>();
 </script>
 
 <header>
@@ -48,9 +55,7 @@
 					<PlusCircle size="16" /> New
 				</button>
 			{/if}
-			{#if data.authenticated}
-				<button class="sign-in" onclick={logout}>Log out</button>
-			{:else}
+			{#if !data.authenticated}
 				<button class="sign-in" onclick={login}>Sign in</button>
 			{/if}
 		{/if}
@@ -61,6 +66,40 @@
 				<Search size="20" />
 			{/if}
 		</button>
+		{#if data.user}
+			<button
+				class="icon-button"
+				style="background-color: transparent;"
+				onclick={(e) => userSelect?.open(e.currentTarget)}
+			>
+				<Profile handle={data.user.username} size={20} />
+			</button>
+			<Select placement="bottom-end" bind:this={userSelect}>
+				<ul role="menu" class="user-select">
+					<li>
+						<a href="/{data.user?.username}" onclick={() => userSelect?.close()}>
+							<DocumentChartBar size="14" /> My notebooks
+						</a>
+					</li>
+					<li>
+						<a
+							href="/{data.user?.username}/secrets"
+							style="pointer-events: none;"
+							aria-disabled="true"
+							onclick={() => userSelect?.close()}
+						>
+							<Lock size="14" /> Secrets
+						</a>
+					</li>
+					<li><span class="separator"></span></li>
+					<li>
+						<button onclick={() => (logout(), userSelect?.close())}>
+							<SignOut size="14" />Log out
+						</button>
+					</li>
+				</ul>
+			</Select>
+		{/if}
 	</span>
 </header>
 {#if data.authenticated && !data.user}
@@ -291,6 +330,48 @@
 			color: hsl(0, 0%, 65%);
 			margin: 0;
 			margin-bottom: 30px;
+		}
+	}
+
+	ul[role='menu'] {
+		list-style: none;
+		background-color: hsl(0, 0%, 10%);
+		padding: 8px 0;
+		margin: 0;
+		border: 1px solid hsl(0, 0%, 15%);
+		border-radius: 6px;
+
+		& > li {
+			display: block;
+			padding: 0;
+
+			& > span.separator {
+				display: block;
+				width: 100%;
+				height: 1px;
+				margin: 4px 0;
+				background-color: hsl(0, 0%, 15%);
+			}
+
+			& > :where(button, a) {
+				width: 100%;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 8px 16px;
+				color: hsl(0, 0%, 80%);
+				border-radius: 0;
+				background-color: transparent;
+
+				&:is(:hover, :focus-within):not(:disabled):not([aria-disabled='true']) {
+					color: hsl(0, 0%, 90%);
+					background-color: hsl(0, 0%, 15%);
+				}
+
+				&:is(:disabled, [aria-disabled='true']) {
+					color: hsl(0, 0%, 65%);
+				}
+			}
 		}
 	}
 </style>
