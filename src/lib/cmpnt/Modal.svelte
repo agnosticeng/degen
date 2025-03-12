@@ -12,7 +12,15 @@
 	let { children, onclose }: Props = $props();
 
 	onMount(() => {
-		if (modal.showModal) modal.showModal();
+		if (modal.showModal) {
+			modal.showModal();
+
+			document.documentElement.style.overflow = 'hidden';
+		}
+
+		return () => {
+			document.documentElement.style.overflow = '';
+		};
 	});
 
 	function handleKeydown(e: KeyboardEvent) {

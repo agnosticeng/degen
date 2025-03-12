@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { autoresize } from '$lib/actions/autoresize.svelte';
 	import { setTags } from '$lib/client/requests/notebooks';
 	import { getAlltags } from '$lib/client/requests/tags';
 	import Autocomplete from '$lib/cmpnt/Autocomplete.svelte';
@@ -39,21 +40,24 @@
 
 	function remove(i: number) {
 		tags = tags.toSpliced(i, 1);
+		filter = '';
 	}
 
 	let input = $state<HTMLInputElement>();
 	let autocompletions = $state.raw<Tag[]>([]);
 	let filter = $state('');
 	let autocomplete = $state<ReturnType<typeof Autocomplete>>();
-	const filteredTags = $derived(
-		autocompletions.filter(
+	const filteredTags = $derived.by<NewTag[]>(() => {
+		const filtered = autocompletions.filter(
 			(tag) => !tagNames.includes(tag.name) && tag.name.toLowerCase().includes(filter.toLowerCase())
-		)
-	);
+		);
+
+		return [{ name: filter }, ...filtered].filter((t) => !!t.name);
+	});
 
 	$effect(() => void getAlltags().then((t) => (autocompletions = t ?? [])));
 
-	async function handleSelectTag(tag: Tag) {
+	async function handleSelectTag(tag: NewTag) {
 		tags = tags.concat(tag);
 		await tick();
 		if (!filteredTags.length) autocomplete?.close();
@@ -66,13 +70,21 @@
 			filter = '';
 			return;
 		}
+
+		if (e.code === 'Backspace' && e.currentTarget.value.trim().length === 0) {
+			tags = tags.slice(0, -1);
+		}
 	}
+
+	$effect(() => {
+		if (tags.length === 5) autocomplete?.close();
+	});
 </script>
 
 {#if open}
 	<Modal bind:this={modal} onclose={() => (open = false)}>
 		<form onsubmit={handleSubmit}>
-			<h1><TagIcon size="16" /> Edit topics</h1>
+			<h1><TagIcon size="16" /> Edit tags</h1>
 			<div
 				class="form-group"
 				role="presentation"
@@ -81,7 +93,7 @@
 					input?.focus();
 				}}
 			>
-				<span>Topics<span>(separate with spaces)</span></span>
+				<span>Tags<span>(separate with spaces)</span></span>
 				<div class="topics">
 					{#each tags as tag, i (tag.name)}
 						<span class="topic">
@@ -91,6 +103,7 @@
 						</span>
 					{/each}
 					<input
+						use:autoresize
 						type="text"
 						disabled={tags.length === 5}
 						bind:this={input}
@@ -214,17 +227,12 @@
 	}
 
 	input {
-		width: 250px;
+		width: 10px;
 		background-color: hsl(0deg 0% 3%);
-		border: 1px solid transparent;
+		border: none;
 		border-radius: 5px;
 		outline: none;
-
 		height: 30px;
-
-		&:not(:disabled):is(:focus-within, :hover) {
-			border-color: hsl(0deg 0% 34%);
-		}
 
 		&:disabled {
 			display: none;

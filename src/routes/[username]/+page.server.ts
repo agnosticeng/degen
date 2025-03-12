@@ -6,9 +6,13 @@ import { error } from '@sveltejs/kit';
 import { parse } from '../search.utils';
 import type { PageServerLoad } from './$types';
 
-export const load = (async ({ url, locals, params }) => {
+export const load = (async ({ url, locals, params, parent }) => {
 	try {
-		const { search, tags } = parse(url.searchParams.get('q') ?? '');
+		const { trends } = await parent();
+		const { search, tags } = parse(
+			url.searchParams.get('q') ?? '',
+			trends.map((t) => t.name)
+		);
 
 		const author = await userRepository.read(withUsername(params.username));
 

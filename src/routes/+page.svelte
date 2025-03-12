@@ -5,7 +5,7 @@
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import type { PageProps } from './$types';
-	import { getTagHref } from './search.utils';
+	import { getTagHref, parse } from './search.utils';
 
 	let { data }: PageProps = $props();
 
@@ -27,6 +27,13 @@
 			userLike: l.count
 		});
 	}
+
+	const selectedTags = $derived(
+		parse(
+			page.url.searchParams.get('q') ?? '',
+			data.trends.map((t) => t.name)
+		).tags
+	);
 </script>
 
 <svelte:head>
@@ -36,10 +43,7 @@
 <nav class="trends">
 	{#each data.trends.slice(0, 5) as trend}
 		<a href={getTagHref(new URL(page.url), trend.name)}>
-			<button
-				class="trend-button"
-				aria-current={page.url.searchParams.get('q')?.includes(`#${trend.name}`)}
-			>
+			<button class="trend-button" aria-current={selectedTags.includes(trend.name)}>
 				<i>#</i>{trend.name}
 			</button>
 		</a>
@@ -65,7 +69,7 @@
 										<button
 											class="trend-button"
 											style="margin-right: 4px"
-											aria-current={page.url.searchParams.get('q')?.includes(`#${trend}`)}
+											aria-current={selectedTags.includes(trend)}
 										>
 											<i>#</i>{trend}
 										</button>
