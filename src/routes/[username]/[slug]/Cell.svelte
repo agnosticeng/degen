@@ -16,7 +16,6 @@
 	import { slide } from 'svelte/transition';
 	import ChartConfig from './ChartConfig.svelte';
 	import ExecutionSelect from './ExecutionSelect.svelte';
-	import './markdown.css';
 
 	interface Props {
 		block: EditionBlock & { executions?: ExecutionWithResultURL[] };
@@ -348,7 +347,6 @@
 	}
 
 	.output {
-		padding-bottom: 12px;
 		padding-left: 2px;
 		border: 1px solid transparent;
 		border-left: none;

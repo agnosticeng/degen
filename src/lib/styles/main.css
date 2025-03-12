@@ -1,5 +1,4 @@
 @import 'normalize.css' layer(normalize);
-@import '$lib/markdown/styles/tokens.css';
 
 @layer normalize, base, app;
 
@@ -57,7 +56,5 @@
 
 		font-synthesis: none;
 		text-rendering: optimizeLegibility;
-		/* -webkit-font-smoothing: antialiased; */
-		/* -moz-osx-font-smoothing: grayscale; */
 	}
 }

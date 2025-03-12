@@ -49,9 +49,7 @@
 <style>
 	div {
 		height: 20px;
-		margin: 5px 0;
 		position: relative;
-
 		opacity: 0;
 		transition: opacity 100ms ease-in;
 	}
