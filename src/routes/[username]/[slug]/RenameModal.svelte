@@ -25,7 +25,11 @@
 		if (typeof title === 'string') {
 			if (title === notebook.title) return modal?.close();
 
-			const updated = await update(notebook.id, { visibility: notebook.visibility, title });
+			const updated = await update(notebook.id, {
+				visibility: notebook.visibility,
+				title,
+				slug: notebook.slug
+			});
 			if (!updated) return;
 
 			onSuccess?.(updated);
