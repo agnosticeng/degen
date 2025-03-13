@@ -41,6 +41,11 @@
 		if (e.key === 'Escape') editing = undefined;
 	}
 
+	function handleKeypress(e: KeyboardEvent & { currentTarget: HTMLInputElement }) {
+		const value = e.currentTarget.value + e.key;
+		if (!/[a-zA-z][a-zA-z0-9-_]*/.test(value)) e.preventDefault();
+	}
+
 	async function handleDelete(secret: Secret) {
 		const result = await confirm({
 			title: 'Delete secret',
@@ -129,6 +134,7 @@
 						required
 						placeholder="e.g. CLIENT_KEY"
 						form="new-secret"
+						onkeypress={handleKeypress}
 					/>
 				</td>
 				<td>

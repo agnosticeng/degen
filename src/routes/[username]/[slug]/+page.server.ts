@@ -1,6 +1,7 @@
 import { search } from '$lib/server/proxy';
 import { NotFound } from '$lib/server/repositories/errors';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
+import { secretRepository } from '$lib/server/repositories/secrets';
 import { or } from '$lib/server/repositories/specifications/logical';
 import {
 	withAuthor,
@@ -20,7 +21,12 @@ export const load = (async ({ params, locals, url }) => {
 			)
 		);
 
-		const blocks = await search(notebook.blocks, locals.user?.id ?? 'public', url.hostname);
+		const blocks = await search(
+			notebook.blocks,
+			locals.user?.id ?? 'public',
+			url.hostname,
+			await secretRepository.list(notebook.authorId)
+		);
 
 		return {
 			notebook: { ...notebook, blocks },
