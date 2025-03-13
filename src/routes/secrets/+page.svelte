@@ -90,7 +90,7 @@
 		<tbody>
 			{#each secrets as secret (secret.id)}
 				<tr>
-					<td>{secret.name}</td>
+					<td><span>{secret.name}</span></td>
 					<td>
 						{#if editing === secret.id}
 							<form method="POST" action="?/edit" id="edit-{secret.id}" use:enhance={handleUpdate}>
@@ -104,7 +104,7 @@
 								/>
 							</form>
 						{:else}
-							{secret.value}
+							<span>{secret.value}</span>
 						{/if}
 					</td>
 					<td class="actions">
@@ -182,7 +182,7 @@
 		border: 1px solid hsl(0, 0%, 20%);
 		border-radius: 4px;
 		display: grid;
-		grid-template-columns: auto auto min-content;
+		grid-template-columns: 1fr 1fr min-content;
 
 		& :where(thead, tbody, tr) {
 			display: contents;
@@ -218,6 +218,13 @@
 		height: 48px;
 		display: flex;
 		align-items: center;
+		min-width: 0;
+
+		& > span {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
 
 		&.actions {
 			justify-content: end;
