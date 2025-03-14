@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { Signer } from '@agnosticeng/sign';
 import type { Block } from '../repositories/blocks';
+import type { Secret } from '../repositories/secrets';
 import type { User } from '../repositories/users';
 import type { Execution, ExecutionWithResultURL, QuerySearch } from './types';
 import { hash } from './utils';
@@ -13,7 +14,8 @@ const signer = new Signer(env.PROXY_SECRET);
 export async function search(
 	blocks: Block[],
 	quota_key: User['id'] | 'public',
-	prefix = ''
+	prefix = '',
+	secrets: Secret[]
 ): Promise<Prettify<Block & { executions?: ExecutionWithResultURL[] }>[]> {
 	const queries = await Promise.all(
 		blocks.filter((b) => b.type === 'sql').map((b) => blockToQuerySearch(b, prefix))
@@ -49,7 +51,7 @@ export async function search(
 		executions.map(async ([id, executions]) => {
 			const block = blocks.find((b) => b.id === id);
 			if (!block) error('Block not found');
-			const createArgs = [block.content, toQueryId(block, prefix), quota_key] as const;
+			const createArgs = [block.content, toQueryId(block, prefix), quota_key, secrets] as const;
 
 			if (!executions.length) return create(...createArgs);
 
@@ -115,21 +117,40 @@ async function getResultUrl(execution: number): Promise<string> {
 	return url.toString();
 }
 
-async function create(sql: string, query_id: string, quota_key: User['id'] | 'public') {
+async function create(
+	sql: string,
+	query_id: string,
+	quota_key: User['id'] | 'public',
+	secrets: Secret[]
+) {
 	const url = new URL(env.PROXY_URL);
 	url.pathname = '/v1/async/executions';
 	url.searchParams.set('quota-key', `${quota_key}`);
 	url.searchParams.set('query-id', query_id);
 
 	const headers = new Headers();
-	headers.set('Content-Type', 'text/plain');
+	headers.set('Content-Type', 'application/json');
 	headers.set('Authorization', env.PROXY_SECRET);
 
-	const response = await fetch(url, { method: 'POST', headers, body: sql });
+	const secretNames = getSecretNameFromSQL(sql);
+
+	const body = JSON.stringify({
+		sql,
+		secrets: secrets
+			.filter((s) => secretNames.includes(s.name))
+			.map((s) => ({ key: s.name, value: s.value }))
+	});
+
+	const response = await fetch(url, { method: 'POST', headers, body });
 
 	if (response.ok) return;
 
 	error('Fail to create Execution');
+}
+
+function getSecretNameFromSQL(sql: string) {
+	const keys = Array.from(sql.matchAll(/{([a-zA-z][a-zA-z0-9-_]*): ?String}/g), (m) => m[1]);
+	return Array.from(new Set(keys));
 }
 
 export * from './types';

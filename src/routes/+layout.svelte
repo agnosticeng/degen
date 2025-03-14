@@ -52,7 +52,7 @@
 		{#if !searchBarVisible}
 			{#if data.user}
 				<button class="new" onclick={() => (openNewNotebook = true)} disabled={!data.user.username}>
-					<PlusCircle size="16" /> New
+					<PlusCircle size="16" />New
 				</button>
 			{/if}
 			{#if !data.authenticated}
@@ -78,17 +78,12 @@
 				<ul role="menu" class="user-select">
 					<li>
 						<a href="/{data.user?.username}" onclick={() => userSelect?.close()}>
-							<DocumentChartBar size="14" /> My notebooks
+							<DocumentChartBar size="14" />My notebooks
 						</a>
 					</li>
 					<li>
-						<a
-							href="/{data.user?.username}/secrets"
-							style="pointer-events: none;"
-							aria-disabled="true"
-							onclick={() => userSelect?.close()}
-						>
-							<Lock size="14" /> Secrets
+						<a href="/secrets" onclick={() => userSelect?.close()}>
+							<Lock size="14" />Secrets
 						</a>
 					</li>
 					<li><span class="separator"></span></li>
@@ -366,10 +361,6 @@
 				&:is(:hover, :focus-within):not(:disabled):not([aria-disabled='true']) {
 					color: hsl(0, 0%, 90%);
 					background-color: hsl(0, 0%, 15%);
-				}
-
-				&:is(:disabled, [aria-disabled='true']) {
-					color: hsl(0, 0%, 65%);
 				}
 			}
 		}

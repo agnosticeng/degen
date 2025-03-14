@@ -23,6 +23,8 @@ export const users = table(
 	(t) => [index('username_idx').on(t.username), index('external_id_idx').on(t.externalId)]
 );
 
+export const usersRelations = relations(users, ({ many }) => ({ secrets: many(secrets) }));
+
 export const notebooks = table('notebooks', {
 	id: int().primaryKey({ autoIncrement: true }),
 	title: text().notNull(),
@@ -131,4 +133,27 @@ export const tagsToNotebooks = table(
 export const tagsToNotebooksRelations = relations(tagsToNotebooks, ({ one }) => ({
 	notebook: one(notebooks, { fields: [tagsToNotebooks.notebookId], references: [notebooks.id] }),
 	tag: one(tags, { fields: [tagsToNotebooks.tagId], references: [tags.id] })
+}));
+
+export const secrets = table(
+	'secrets',
+	{
+		id: int().primaryKey({ autoIncrement: true }),
+		name: text().notNull(),
+		value: text().notNull(),
+		ownerId: int('owner_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: int('created_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`),
+		updatedAt: int('updated_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`)
+	},
+	(t) => [unique('secrets_name_owner_unique').on(t.name, t.ownerId)]
+);
+
+export const secretsRelations = relations(secrets, ({ one }) => ({
+	owner: one(users, { fields: [secrets.ownerId], references: [users.id] })
 }));
