@@ -1,5 +1,5 @@
 import type { EditionBlock } from '$lib/server/repositories/blocks';
-import shallowEqual from 'lodash.isequal';
+import * as _ from 'lodash';
 
 export function areSameBlocks(left: EditionBlock[], right: EditionBlock[]) {
 	if (left.length !== right.length) return false;
@@ -14,6 +14,6 @@ function areSameBlock(a: EditionBlock, b: EditionBlock) {
 		Object.is(a.pinned, b.pinned) &&
 		Object.is(a.position, b.position) &&
 		Object.is(a.type, b.type) &&
-		shallowEqual(a.metadata, b.metadata)
+		_.isEqual(a.metadata, b.metadata)
 	);
 }

@@ -3,7 +3,7 @@ import { notebookRepository, type Notebook } from '$lib/server/repositories/note
 import { withAuthor, withId } from '$lib/server/repositories/specifications/notebooks';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { kebabCase } from 'lodash';
+import * as _ from 'lodash';
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
 	if (!locals.user) error(401);
@@ -33,7 +33,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
 	try {
 		const updated = await notebookRepository.update(
-			{ ...previous, visibility: data.visibility, title: data.title, slug: kebabCase(data.slug) },
+			{ ...previous, visibility: data.visibility, title: data.title, slug: _.kebabCase(data.slug) },
 			locals.user.id
 		);
 
