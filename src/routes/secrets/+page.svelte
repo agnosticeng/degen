@@ -1,19 +1,18 @@
 <script lang="ts">
-	import { deserialize, enhance } from '$app/forms';
-	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
+	import { enhance } from '$app/forms';
+	import EyeSlash from '$lib/cmpnt/svg/eye-slash.svelte';
+	import Eye from '$lib/cmpnt/svg/eye.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Lock from '$lib/cmpnt/svg/lock.svelte';
-	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
-	import X from '$lib/cmpnt/svg/x.svelte';
 	import type { Secret } from '$lib/server/repositories/secrets';
-	import type { ActionResult } from '@sveltejs/kit';
 	import type { PageProps, SubmitFunction } from './$types';
 
 	let { data }: PageProps = $props();
 
 	let secrets = $state.raw(data.secrets);
-	let editing = $state<Secret['id']>();
+	let showing = $state<Secret['id']>();
+	const placeholder = Array(15).fill('*').join('');
 
 	const handleCreate = (() =>
 		({ result, formElement }) => {
@@ -23,50 +22,21 @@
 			}
 		}) satisfies SubmitFunction;
 
-	const handleUpdate = (() => {
-		return ({ result }) => {
-			if (result.type === 'success' && result.data?.secret) {
-				const { secret } = result.data;
-				const index = secrets.findIndex((s) => s.id === secret.id);
-				if (index !== -1) {
-					secrets = secrets.with(index, result.data.secret);
-					editing = undefined;
-					return;
-				}
-			}
-		};
-	}) satisfies SubmitFunction;
+	const handleDelete = (() =>
+		({ result, formData }) => {
+			if (result.type === 'success') {
+				const secret_id = formData.get('secret_id') ?? '';
+				if (typeof secret_id !== 'string') return;
+				const id = parseInt(secret_id, 10);
+				if (isNaN(id)) return;
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') editing = undefined;
-	}
+				secrets = secrets.filter((s) => s.id !== id);
+			}
+		}) satisfies SubmitFunction;
 
 	function handleKeypress(e: KeyboardEvent & { currentTarget: HTMLInputElement }) {
 		const value = e.currentTarget.value + e.key;
 		if (!/[a-zA-z][a-zA-z0-9-_]*/.test(value)) e.preventDefault();
-	}
-
-	async function handleDelete(secret: Secret) {
-		const result = await confirm({
-			title: 'Delete secret',
-			description: `Are you sure you want to delete the secret “<b>${secret.name}</b>”?<br />Any query that use this secret will cease to work.`,
-			danger: true
-		});
-
-		if (!result) return;
-
-		const body = new FormData();
-		body.set('secret_id', `${secret.id}`);
-
-		const response = await fetch('?/delete', {
-			method: 'POST',
-			headers: new Headers({ accept: 'application/json', 'x-sveltekit-action': 'true' }),
-			cache: 'no-store',
-			body
-		});
-
-		const data: ActionResult = deserialize(await response.text());
-		if (data.type === 'success') secrets = secrets.filter((s) => s.id !== secret.id);
 	}
 </script>
 
@@ -92,37 +62,28 @@
 				<tr>
 					<td><span>{secret.name}</span></td>
 					<td>
-						{#if editing === secret.id}
-							<form method="POST" action="?/edit" id="edit-{secret.id}" use:enhance={handleUpdate}>
-								<input type="hidden" name="secret_id" value={secret.id} />
-								<input
-									type="text"
-									required
-									name="secret_value"
-									value={secret.value}
-									onkeydown={handleKeydown}
-								/>
-							</form>
-						{:else}
+						{#if showing === secret.id}
 							<span>{secret.value}</span>
+						{:else}
+							<span>{placeholder}</span>
 						{/if}
 					</td>
 					<td class="actions">
-						{#if editing === secret.id}
-							<button class="icon-button" form="edit-{secret.id}">
-								<FloppyDiskBack size="14" />
-							</button>
-							<button class="icon-button" onclick={() => (editing = undefined)}>
-								<X size="14" />
+						{#if showing === secret.id}
+							<button onclick={() => (showing = undefined)} class="icon-button" aria-current="true">
+								<EyeSlash size="14" />
 							</button>
 						{:else}
-							<button type="button" onclick={() => (editing = secret.id)} class="icon-button">
-								<PencilSimpleLine size="14" />
-							</button>
-							<button type="button" class="icon-button danger" onclick={() => handleDelete(secret)}>
-								<Trash size="14" />
+							<button onclick={() => (showing = secret.id)} class="icon-button">
+								<Eye size="14" />
 							</button>
 						{/if}
+						<form action="?/delete" method="POST" use:enhance={handleDelete}>
+							<input type="hidden" name="secret_id" value={secret.id} />
+							<button class="icon-button danger">
+								<Trash size="14" />
+							</button>
+						</form>
 					</td>
 				</tr>
 			{/each}
@@ -252,7 +213,7 @@
 			padding: 6px;
 		}
 
-		&:is(:hover, :focus):not(:disabled) {
+		&:is(:hover, :focus, [aria-current='true']):not(:disabled) {
 			background-color: hsl(0, 0%, 15%);
 			color: hsl(0, 0%, 90%);
 

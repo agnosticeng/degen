@@ -1,4 +1,4 @@
-import { NotCreated, NotDeleted, NotUpdated } from '$lib/server/repositories/errors';
+import { NotCreated, NotDeleted } from '$lib/server/repositories/errors';
 import { secretRepository } from '$lib/server/repositories/secrets';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -23,28 +23,6 @@ export const actions = {
 			return { secret: await secretRepository.create(locals.user.id, { name, value }) };
 		} catch (e) {
 			if (e instanceof NotCreated) return fail(400, { message: e.message });
-			console.error(e);
-			return fail(500);
-		}
-	},
-	edit: async ({ locals, request }) => {
-		if (!locals.user) return fail(401);
-
-		const formData = await request.formData();
-		const _id = formData.get('secret_id');
-		const value = formData.get('secret_value');
-
-		if (!_id || typeof _id !== 'string') return fail(400, { message: 'Invalid id' });
-		const id = parseInt(_id, 10);
-		if (isNaN(id)) return fail(400, { message: 'Invalid id' });
-
-		if (!value || typeof value !== 'string') return fail(400, { message: 'Invalid value' });
-
-		try {
-			return { secret: await secretRepository.update(locals.user.id, id, value) };
-		} catch (e) {
-			if (e instanceof NotUpdated) return fail(404, { message: e.message });
-
 			console.error(e);
 			return fail(500);
 		}
