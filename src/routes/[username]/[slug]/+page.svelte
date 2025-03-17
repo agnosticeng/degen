@@ -211,8 +211,10 @@
 <ShareModal
 	notebook={{ ...notebook, author: data.notebook.author }}
 	onSuccess={async (n) => {
-		if (notebook.slug !== n.slug)
+		if (notebook.slug !== n.slug) {
+			blocker.prevent = false;
 			await goto(`/${data.notebook.author.username}/${n.slug}`, { replaceState: true });
+		}
 
 		notebook = n;
 	}}

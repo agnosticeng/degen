@@ -1,5 +1,5 @@
 import type { EditionBlock } from '$lib/server/repositories/blocks';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 export function areSameBlocks(left: EditionBlock[], right: EditionBlock[]) {
 	if (left.length !== right.length) return false;
