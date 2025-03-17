@@ -19,6 +19,9 @@ export const users = table(
 		pictureURL: text('picture_url'),
 		createdAt: int('created_at', { mode: 'timestamp' })
 			.notNull()
+			.default(sql`(unixepoch())`),
+		updatedAt: int('updated_at', { mode: 'timestamp' })
+			.notNull()
 			.default(sql`(unixepoch())`)
 	},
 	(t) => [index('username_idx').on(t.username), index('external_id_idx').on(t.externalId)]

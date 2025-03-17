@@ -3,13 +3,12 @@
 		size?: number;
 		src: string;
 		alt: string;
-		square?: boolean;
 	}
 
-	let { size = 30, src, alt, square = false }: Props = $props();
+	let { size = 30, src, alt }: Props = $props();
 </script>
 
-<div class:square style:width="{size}px" style:height="{size}px">
+<div style:width="{size}px" style:height="{size}px">
 	<img {alt} {src} />
 </div>
 
@@ -21,10 +20,6 @@
 		justify-content: center;
 		overflow: hidden;
 		outline: none;
-
-		&.square {
-			border-radius: 5px;
-		}
 	}
 
 	img {

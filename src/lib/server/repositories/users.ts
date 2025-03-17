@@ -5,9 +5,9 @@ import { NotCreated, NotFound, NotUpdated } from './errors';
 import { isDrizzleSpecification, type Specification } from './specifications';
 
 export type User = typeof users.$inferSelect;
-export type NewUser = Omit<typeof users.$inferInsert, 'id' | 'createdAt'>;
+export type NewUser = Omit<typeof users.$inferInsert, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateUser = MakeRequired<
-	Omit<typeof users.$inferInsert, 'createdAt' | 'externalId' | 'username'>,
+	Omit<typeof users.$inferInsert, 'createdAt' | 'externalId' | 'username' | 'updatedAt'>,
 	'id'
 >;
 
@@ -45,7 +45,7 @@ class DrizzleUserRepository implements UserRepository {
 	async update({ id, ...data }: UpdateUser) {
 		const [user] = await this.db
 			.update(users)
-			.set({ pictureURL: data.pictureURL })
+			.set({ pictureURL: data.pictureURL, updatedAt: new Date() })
 			.where(eq(users.id, id))
 			.returning();
 		if (user) return user;

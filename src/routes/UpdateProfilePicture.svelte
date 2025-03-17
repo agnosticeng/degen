@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import ImageBadge from '$lib/cmpnt/ImageBadge.svelte';
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
@@ -46,15 +47,16 @@
 		if (fileToUpload) formData.set('picture', fileToUpload);
 		else cancel();
 
-		return ({ result }) => {
+		return async ({ result }) => {
 			if (result.type === 'success' && result.data?.user) {
 				user = {
 					...result.data.user,
 					pictureURL: result.data.user.pictureURL
-						? result.data.user.pictureURL + '?v' + Date.now()
+						? result.data.user.pictureURL + '?v=' + result.data.user.updatedAt.getTime()
 						: null
 				};
 				modal?.close();
+				await invalidateAll();
 			}
 		};
 	}) satisfies SubmitFunction;

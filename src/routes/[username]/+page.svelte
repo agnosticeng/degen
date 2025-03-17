@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
+	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Pie from '$lib/cmpnt/svg/pie.svelte';
-	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import { getTagHref, parse } from '../search.utils';
 	import type { PageProps } from './$types';
@@ -56,7 +56,7 @@
 		{#each notebooks as item}
 			<li>
 				<div class="item-content">
-					<Profile handle={item.author.username} size={32} />
+					<ProfilePicture user={item.author} size={32} />
 					<div class="item-info">
 						<a
 							href="/{item.author.username}/{item.slug}"

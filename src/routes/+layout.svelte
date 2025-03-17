@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { applyAction, enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import ImageBadge from '$lib/cmpnt/ImageBadge.svelte';
 	import Modal from '$lib/cmpnt/Modal.svelte';
+	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
 	import DocumentChartBar from '$lib/cmpnt/svg/document-chart-bar.svelte';
 	import Lock from '$lib/cmpnt/svg/lock.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
-	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Search from '$lib/cmpnt/svg/search.svelte';
 	import SignOut from '$lib/cmpnt/svg/sign-out.svelte';
 	import UserCircle from '$lib/cmpnt/svg/user-circle.svelte';
@@ -77,11 +76,7 @@
 				style="background-color: transparent;"
 				onclick={(e) => userSelect?.open(e.currentTarget)}
 			>
-				{#if user.pictureURL}
-					<ImageBadge alt="{user.username}'s profile picture" src={user.pictureURL} size={20} />
-				{:else}
-					<Profile handle={user.username} size={20} />
-				{/if}
+				<ProfilePicture {user} size={20} />
 			</button>
 			<Select placement="bottom-end" bind:this={userSelect}>
 				<ul role="menu" class="user-select">

@@ -2,12 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
+	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
-	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import TagIcon from '$lib/cmpnt/svg/tag.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
@@ -139,7 +139,7 @@
 
 <header>
 	<div class="author">
-		<Profile handle={data.notebook.author.username} size={32} />
+		<ProfilePicture user={data.notebook.author} size={32} />
 		<div class="username">
 			<a href="/{data.notebook.author.username}">{data.notebook.author.username}</a>
 		</div>
