@@ -84,7 +84,7 @@
 {#if open}
 	<Modal bind:this={modal} onclose={() => (open = false)}>
 		<form onsubmit={handleSubmit}>
-			<h1><TagIcon size="16" /> Edit tags</h1>
+			<h1><TagIcon size="24" /> Edit tags</h1>
 			<div
 				class="form-group"
 				role="presentation"
@@ -166,7 +166,7 @@
 		font-size: 18px;
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: 10px;
 	}
 
 	.form-group {

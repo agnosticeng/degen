@@ -8,7 +8,7 @@ import {
 import { notebookRepository } from '$lib/server/repositories/notebooks';
 import { withAuthor, withId } from '$lib/server/repositories/specifications/notebooks';
 import { error, json } from '@sveltejs/kit';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import type { RequestHandler } from './$types';
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {

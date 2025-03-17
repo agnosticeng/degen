@@ -67,7 +67,7 @@
 	}
 
 	h1 {
-		font-size: 16px;
+		font-size: 18px;
 		margin: 0;
 		margin-bottom: 12px;
 	}

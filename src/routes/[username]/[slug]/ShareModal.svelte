@@ -59,7 +59,7 @@
 {#if open}
 	<Modal bind:this={modal} onclose={() => (open = false)} --modal-max-width="560px">
 		<form onsubmit={handleSubmit}>
-			<h1><Globe size="16" /><span>Share</span></h1>
+			<h1><Globe size="24" /><span>Share</span></h1>
 
 			<h2>Notebook URL</h2>
 			<div class="link-group">
@@ -118,7 +118,7 @@
 		font-size: 18px;
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: 10px;
 	}
 
 	h2 {

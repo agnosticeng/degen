@@ -15,7 +15,7 @@
 	import '$lib/styles/main.css';
 	import type { ActionData, LayoutProps } from './$types';
 	import NotebookSearch from './NotebookSearch.svelte';
-	import UpdateProfilePicture from './UpdateProfilePicture.svelte';
+	import UpdateAvatar from './UpdateAvatar.svelte';
 
 	let { data, children }: LayoutProps = $props();
 
@@ -42,7 +42,7 @@
 	});
 
 	let userSelect = $state<ReturnType<typeof Select>>();
-	let updateProfilePicture = $state<ReturnType<typeof UpdateProfilePicture>>();
+	let updateAvatar = $state<ReturnType<typeof UpdateAvatar>>();
 </script>
 
 <header>
@@ -81,8 +81,8 @@
 			<Select placement="bottom-end" bind:this={userSelect}>
 				<ul role="menu" class="user-select">
 					<li>
-						<button onclick={() => (updateProfilePicture?.show(), userSelect?.close())}>
-							<UserCircle size="14" />Update profile picture
+						<button onclick={() => (updateAvatar?.show(), userSelect?.close())}>
+							<UserCircle size="14" />Update avatar
 						</button>
 					</li>
 					<li>
@@ -103,7 +103,7 @@
 					</li>
 				</ul>
 			</Select>
-			<UpdateProfilePicture bind:user bind:this={updateProfilePicture} />
+			<UpdateAvatar bind:user bind:this={updateAvatar} />
 		{/if}
 	</span>
 </header>
@@ -165,7 +165,7 @@
 					await applyAction(result);
 				}}
 		>
-			<h1>New notebook</h1>
+			<h1><DocumentChartBar size="20" />New notebook</h1>
 			<label>
 				<span>Title</span>
 				<input
@@ -268,9 +268,11 @@
 	}
 
 	form h1 {
-		font-size: 16px;
-		margin: 0;
-		margin-bottom: 12px;
+		margin: 0 0 12px;
+		font-size: 18px;
+		display: flex;
+		align-items: center;
+		gap: 10px;
 	}
 
 	form label {

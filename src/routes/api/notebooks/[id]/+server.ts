@@ -2,8 +2,8 @@ import { NotDeleted, NotUpdated } from '$lib/server/repositories/errors';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
 import { withAuthor, withId } from '$lib/server/repositories/specifications/notebooks';
 import { error, json } from '@sveltejs/kit';
+import _ from 'lodash';
 import type { RequestHandler } from './$types';
-import * as _ from 'lodash';
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
 	if (!locals.user) error(401);
