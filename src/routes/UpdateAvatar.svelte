@@ -70,11 +70,11 @@
 			use:enhance={handleSubmit}
 			enctype="multipart/form-data"
 		>
-			<h1><UserCircle size="16" /><span>Update profile picture</span></h1>
-			<p>Your picture will be visible to everyone.</p>
+			<h1><UserCircle size="24" /><span>Update avatar</span></h1>
+			<p>Your avatar will be visible to everyone.</p>
 			<div>
 				{#if pictureURL}
-					<ImageBadge alt="Profile picture" src={pictureURL} size={44} />
+					<ImageBadge alt="Avatar" src={pictureURL} size={44} />
 				{:else}
 					<Profile handle={user.username} />
 				{/if}
@@ -111,12 +111,13 @@
 		font-size: 18px;
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: 10px;
 	}
 
 	p {
+		font-size: 12px;
 		margin: 0;
-		color: hsl(0, 0%, 76%);
+		color: hsl(0, 0%, 65%);
 	}
 
 	div {

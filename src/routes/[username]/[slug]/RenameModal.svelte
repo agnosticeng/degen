@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { update } from '$lib/client/requests/notebooks';
 	import Modal from '$lib/cmpnt/Modal.svelte';
+	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 
 	interface Props {
@@ -41,7 +42,7 @@
 {#if open}
 	<Modal bind:this={modal} onclose={() => (open = false)}>
 		<form onsubmit={handleSubmit}>
-			<h1>New notebook</h1>
+			<h1><PencilSimpleLine size="24" />Rename notebook</h1>
 			<label>
 				<span>Title</span>
 				<input
@@ -71,7 +72,10 @@
 	}
 
 	h1 {
-		font-size: 16px;
+		font-size: 18px;
+		display: flex;
+		align-items: center;
+		gap: 10px;
 		margin: 0;
 		margin-bottom: 12px;
 	}
