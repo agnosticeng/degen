@@ -3,7 +3,9 @@
 	import Select from '$lib/cmpnt/Select.svelte';
 	import SqlEditor from '$lib/cmpnt/SQLEditor.svelte';
 	import CaretDown from '$lib/cmpnt/svg/caret-down.svelte';
+	import Copy from '$lib/cmpnt/svg/copy.svelte';
 	import DotsThreeVertical from '$lib/cmpnt/svg/dots-three-vertical.svelte';
+	import DownloadSimple from '$lib/cmpnt/svg/download-simple.svelte';
 	import Loader from '$lib/cmpnt/svg/loader.svelte';
 	import Pin from '$lib/cmpnt/svg/pin.svelte';
 	import Play from '$lib/cmpnt/svg/play.svelte';
@@ -123,6 +125,19 @@
 					executions={$state.snapshot(block.executions)}
 				/>
 
+				<a
+					href={selectedExecution?.result_url}
+					download
+					data-sveltekit-preload-data="off"
+					aria-disabled={!selectedExecution?.result_url || selectedExecution.status !== 'SUCCEEDED'}
+				>
+					<button
+						disabled={!selectedExecution?.result_url || selectedExecution.status !== 'SUCCEEDED'}
+					>
+						<DownloadSimple size="14" />
+					</button>
+				</a>
+
 				{#if selectedExecution?.result && !readonly}
 					<ChartConfig bind:settings={block.metadata!} columns={selectedExecution.result.meta} />
 				{/if}
@@ -175,6 +190,10 @@
 				{#if block.type === 'markdown' && !readonly}
 					<button onclick={handleRun} class:dirty>
 						<Play size="14" />
+					</button>
+				{:else if block.type === 'sql'}
+					<button onclick={() => navigator.clipboard.writeText(block.content)}>
+						<Copy size="14" />
 					</button>
 				{/if}
 				{#if block.type === 'sql'}
@@ -237,6 +256,27 @@
 
 		&:global(:has(> .chart-settings)) {
 			padding-right: 0;
+		}
+
+		a {
+			height: 100%;
+
+			& > button {
+				height: 100%;
+				aspect-ratio: 1;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: hsl(0, 0%, 80%);
+
+				&:is(:hover, :focus-within):not(:disabled) {
+					color: hsl(0, 0%, 90%);
+				}
+			}
+
+			&[aria-disabled='true'] {
+				pointer-events: none;
+			}
 		}
 	}
 
