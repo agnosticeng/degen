@@ -1,7 +1,8 @@
+import { bucket } from '$lib/server/bucket';
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
-import { userRepository } from '$lib/server/repositories/users';
+import { userRepository, type User } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 import type { Actions, PageServerLoad } from './$types';
@@ -96,5 +97,26 @@ export const actions = {
 		]);
 
 		redirect(303, `/${locals.user.username}/${notebook.slug}`);
+	},
+	update_profile_picture: async ({ request, locals }) => {
+		if (!locals.user) return fail(401);
+
+		const data = await request.formData();
+
+		let pictureURL: User['pictureURL'] = null;
+
+		if (data.has('picture')) {
+			const image = data.get('picture');
+
+			if (!(image instanceof File)) return fail(400, { message: 'Missing file' });
+
+			const ext = image.name.split('.').pop() ?? '';
+			const filename = [locals.user.username, ext].filter(Boolean).join('.');
+			await bucket.upload(filename, image);
+			pictureURL = bucket.publicURL(filename);
+		}
+
+		locals.user = await userRepository.update({ id: locals.user.id, pictureURL });
+		return { user: locals.user };
 	}
 } satisfies Actions;

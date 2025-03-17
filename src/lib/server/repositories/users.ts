@@ -1,22 +1,29 @@
+import { eq } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
 import { users } from '../db/schema';
-import { NotCreated, NotFound } from './errors';
+import { NotCreated, NotFound, NotUpdated } from './errors';
 import { isDrizzleSpecification, type Specification } from './specifications';
 
 export type User = typeof users.$inferSelect;
+export type NewUser = Omit<typeof users.$inferInsert, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateUser = MakeRequired<
+	Omit<typeof users.$inferInsert, 'createdAt' | 'externalId' | 'username' | 'updatedAt'>,
+	'id'
+>;
 
 export interface UserRepository {
-	create(data: Omit<User, 'id' | 'createdAt'>): Promise<User>;
+	create(data: NewUser): Promise<User>;
 	read(spec: Specification<User>): Promise<User>;
+	update(user: UpdateUser): Promise<User>;
 }
 
 class DrizzleUserRepository implements UserRepository {
 	constructor(private db: DrizzleDatabase) {}
 
-	async create(data: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+	async create(data: NewUser): Promise<User> {
 		const [user] = await this.db
 			.insert(users)
-			.values({ username: data.username, externalId: data.externalId })
+			.values({ username: data.username, externalId: data.externalId, pictureURL: data.pictureURL })
 			.onConflictDoUpdate({ target: users.externalId, set: { externalId: data.externalId } })
 			.returning();
 
@@ -33,6 +40,17 @@ class DrizzleUserRepository implements UserRepository {
 		if (user) return user;
 
 		throw new NotFound('User not found');
+	}
+
+	async update({ id, ...data }: UpdateUser) {
+		const [user] = await this.db
+			.update(users)
+			.set({ pictureURL: data.pictureURL, updatedAt: new Date() })
+			.where(eq(users.id, id))
+			.returning();
+		if (user) return user;
+
+		throw new NotUpdated('User not found');
 	}
 }
 

@@ -2,21 +2,24 @@
 	import { applyAction, enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import Modal from '$lib/cmpnt/Modal.svelte';
+	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
 	import DocumentChartBar from '$lib/cmpnt/svg/document-chart-bar.svelte';
 	import Lock from '$lib/cmpnt/svg/lock.svelte';
 	import Logo from '$lib/cmpnt/svg/logo.svelte';
 	import PlusCircle from '$lib/cmpnt/svg/plus-circle.svelte';
-	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import Search from '$lib/cmpnt/svg/search.svelte';
 	import SignOut from '$lib/cmpnt/svg/sign-out.svelte';
+	import UserCircle from '$lib/cmpnt/svg/user-circle.svelte';
 	import X from '$lib/cmpnt/svg/x.svelte';
 	import '$lib/styles/main.css';
 	import type { ActionData, LayoutProps } from './$types';
 	import NotebookSearch from './NotebookSearch.svelte';
+	import UpdateProfilePicture from './UpdateProfilePicture.svelte';
 
 	let { data, children }: LayoutProps = $props();
 
+	let user = $state(data.user);
 	let openNewNotebook = $state(false);
 	let newNotebookModal = $state<ReturnType<typeof Modal>>();
 	let errorMessage = $state<string>('');
@@ -39,6 +42,7 @@
 	});
 
 	let userSelect = $state<ReturnType<typeof Select>>();
+	let updateProfilePicture = $state<ReturnType<typeof UpdateProfilePicture>>();
 </script>
 
 <header>
@@ -66,16 +70,21 @@
 				<Search size="20" />
 			{/if}
 		</button>
-		{#if data.user}
+		{#if user}
 			<button
 				class="icon-button"
 				style="background-color: transparent;"
 				onclick={(e) => userSelect?.open(e.currentTarget)}
 			>
-				<Profile handle={data.user.username} size={20} />
+				<ProfilePicture {user} size={20} />
 			</button>
 			<Select placement="bottom-end" bind:this={userSelect}>
 				<ul role="menu" class="user-select">
+					<li>
+						<button onclick={() => (updateProfilePicture?.show(), userSelect?.close())}>
+							<UserCircle size="14" />Update profile picture
+						</button>
+					</li>
 					<li>
 						<a href="/{data.user?.username}" onclick={() => userSelect?.close()}>
 							<DocumentChartBar size="14" />My notebooks
@@ -94,6 +103,7 @@
 					</li>
 				</ul>
 			</Select>
+			<UpdateProfilePicture bind:user bind:this={updateProfilePicture} />
 		{/if}
 	</span>
 </header>

@@ -109,8 +109,10 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				author: {
 					id: users.id,
 					username: users.username,
+					pictureURL: users.pictureURL,
 					externalId: users.externalId,
-					createdAt: users.createdAt
+					createdAt: users.createdAt,
+					updatedAt: users.updatedAt
 				},
 				tags: sql`COALESCE(${notebook_tags.tags}, JSON_ARRAY())`
 					.mapWith({
