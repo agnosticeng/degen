@@ -1,4 +1,8 @@
 .markdown-body {
+	padding: 10px;
+	max-width: 100%;
+	overflow-x: auto;
+
 	* {
 		font-family: 'Source Serif Pro', 'Iowan Old Style', 'Apple Garamond', 'Palatino Linotype',
 			'Times New Roman', 'Droid Serif', Times, serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -12,8 +16,6 @@
 	h6 {
 		margin: 0;
 	}
-
-	padding: 10px;
 
 	a {
 		color: palevioletred;
