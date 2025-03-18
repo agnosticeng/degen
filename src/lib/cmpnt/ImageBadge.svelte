@@ -8,7 +8,7 @@
 	let { size = 30, src, alt }: Props = $props();
 </script>
 
-<div style:width="{size}px" style:height="{size}px">
+<div class="avatar" style:width="{size}px" style:height="{size}px">
 	<img {alt} {src} />
 </div>
 

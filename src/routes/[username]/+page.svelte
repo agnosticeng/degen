@@ -3,7 +3,6 @@
 	import { like } from '$lib/client/requests/notebooks';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
-	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import { getTagHref, parse } from '../search.utils';
 	import type { PageProps } from './$types';
@@ -58,13 +57,8 @@
 				<div class="item-content">
 					<ProfilePicture user={item.author} size={32} />
 					<div class="item-info">
-						<a
-							href="/{item.author.username}/{item.slug}"
-							onclick={(e) => e.target instanceof HTMLButtonElement && e.preventDefault()}
-						>
-							<h1>
-								<Pie /><span>{item.title}</span>
-							</h1>
+						<a href="/{item.author.username}/{item.slug}">
+							<h1>{item.title}</h1>
 						</a>
 						<div class="author-info">
 							{#if item.author.id === data.user?.id}
@@ -171,6 +165,10 @@
 		flex: 1;
 	}
 
+	.item-content > :global(.avatar) {
+		flex-shrink: 0;
+	}
+
 	.item-info {
 		margin-left: 20px;
 	}
@@ -202,6 +200,16 @@
 		font-size: 14px;
 		margin: 0;
 		font-weight: 300;
+	}
+
+	@media screen and (max-width: 768px) {
+		.author-info {
+			flex-wrap: wrap;
+
+			& > div {
+				width: 100%;
+			}
+		}
 	}
 
 	.likes {

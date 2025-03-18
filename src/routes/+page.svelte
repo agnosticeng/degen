@@ -3,7 +3,6 @@
 	import { like } from '$lib/client/requests/notebooks';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
-	import Pie from '$lib/cmpnt/svg/pie.svelte';
 	import type { PageProps } from './$types';
 	import { getTagHref, parse } from './search.utils';
 
@@ -58,7 +57,7 @@
 					<ProfilePicture user={item.author} size={32} />
 					<div class="item-info">
 						<a href="/{item.author.username}/{item.slug}">
-							<h1><Pie /><span>{item.title}</span></h1>
+							<h1>{item.title}</h1>
 						</a>
 						<div class="author-info">
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
@@ -176,6 +175,10 @@
 		flex: 1;
 	}
 
+	.item-content > :global(.avatar) {
+		flex-shrink: 0;
+	}
+
 	.item-info {
 		margin-left: 20px;
 	}
@@ -207,6 +210,16 @@
 		font-size: 14px;
 		margin: 0;
 		font-weight: 300;
+	}
+
+	@media screen and (max-width: 768px) {
+		.author-info {
+			flex-wrap: wrap;
+
+			& > div {
+				width: 100%;
+			}
+		}
 	}
 
 	.likes {
