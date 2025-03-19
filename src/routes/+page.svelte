@@ -198,6 +198,7 @@
 		display: flex;
 		align-items: center;
 		gap: 5px;
+		height: 20px;
 	}
 
 	.author-info h2 {
@@ -215,12 +216,8 @@
 	}
 
 	@media screen and (max-width: 768px) {
-		.author-info {
-			flex-wrap: wrap;
-
-			& > div {
-				width: 100%;
-			}
+		.author-info > div {
+			display: none;
 		}
 	}
 
