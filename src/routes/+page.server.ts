@@ -17,14 +17,14 @@ export const load = (async ({ url, locals, parent }) => {
 		trends.map((t) => t.name)
 	);
 
-	const notebooks = await notebookRepository.list({
+	const { notebooks, pagination } = await notebookRepository.list({
 		search,
 		tags,
 		visibilities: ['public'],
 		currentUserId: locals.user?.id
 	});
 
-	return { notebooks, trends };
+	return { notebooks, trends, pagination };
 }) satisfies PageServerLoad;
 
 export const actions = {

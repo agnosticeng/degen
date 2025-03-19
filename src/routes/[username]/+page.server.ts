@@ -19,7 +19,7 @@ export const load = (async ({ url, locals, params, parent }) => {
 		const visibilities: Notebook['visibility'][] = ['public'];
 		if (author.id === locals.user?.id) visibilities.push('private', 'unlisted');
 
-		const notebooks = await notebookRepository.list({
+		const { notebooks, pagination } = await notebookRepository.list({
 			currentUserId: locals.user?.id,
 			authorId: author.id,
 			visibilities,
@@ -27,7 +27,7 @@ export const load = (async ({ url, locals, params, parent }) => {
 			tags
 		});
 
-		return { author, notebooks };
+		return { author, notebooks, pagination };
 	} catch (e) {
 		if (e instanceof NotFound) error(404, { message: e.message });
 
