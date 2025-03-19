@@ -27,7 +27,7 @@
 
 	let { block = $bindable(), onDelete, readonly = false }: Props = $props();
 
-	let open = $state(!block.id || block.pinned);
+	let open = $state(!block.id || !block.content || block.pinned);
 	let select = $state<ReturnType<typeof Select>>();
 	let anchor = $state<HTMLElement>();
 
@@ -180,7 +180,7 @@
 		{:catch e}
 			{console.error(e)}
 		{/await}
-		{#if typeof block.id !== 'undefined' && 'executions' in block && !block.executions?.length}
+		{#if typeof block.id !== 'undefined' && 'executions' in block && !block.executions?.length && block.content.length}
 			<div class="output" style="font-size: 11px;">
 				<span>Your data is being processed. Please reload the page to see the results</span>
 			</div>

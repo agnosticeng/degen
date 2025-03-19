@@ -18,7 +18,9 @@ export async function search(
 	secrets: Secret[]
 ): Promise<Prettify<Block & { executions?: ExecutionWithResultURL[] }>[]> {
 	const queries = await Promise.all(
-		blocks.filter((b) => b.type === 'sql').map((b) => blockToQuerySearch(b, prefix))
+		blocks
+			.filter((b) => b.type === 'sql' && b.content.length)
+			.map((b) => blockToQuerySearch(b, prefix))
 	);
 
 	const url = new URL(env.PROXY_URL);
