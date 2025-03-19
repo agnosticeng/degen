@@ -31,10 +31,18 @@ interface NotebookListSpecs {
 	search?: string;
 }
 
+interface Pagination {
+	current?: number;
+	perPage?: number;
+}
+
+export interface NotebookPage {
+	notebooks: (Notebook & { likes: number; author: User; userLike: number; tags: Tag['name'][] })[];
+	pagination: { current: number; total: number };
+}
+
 export interface NotebookRepository {
-	list(
-		specs: NotebookListSpecs
-	): Promise<(Notebook & { likes: number; author: User; userLike: number; tags: Tag['name'][] })[]>;
+	list(specs: NotebookListSpecs, pagination?: Pagination): Promise<NotebookPage>;
 	create(data: NewNotebook): Promise<Notebook>;
 	read(
 		...specs: Specification<Notebook>[]
@@ -51,7 +59,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		return columns;
 	}
 
-	async list(specs: NotebookListSpecs) {
+	async list(specs: NotebookListSpecs, { current = 1, perPage = 20 }: Pagination = {}) {
 		const notebook_likes = this.db.$with('notebook_likes').as(
 			this.db
 				.select({
@@ -101,7 +109,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		if (specs.search)
 			conditions.push(like(sql`UPPER(${notebooks.title})`, `%${specs.search.toUpperCase()}%`));
 
-		return await this.db
+		const rows = await this.db
 			.with(notebook_likes, user_like, notebook_tags)
 			.select({
 				...this.columns,
@@ -121,7 +129,11 @@ class DrizzleNotebookRepository implements NotebookRepository {
 						}
 					})
 					.as('tags'),
-				userLike: sql<number>`COALESCE(${user_like.count}, 0)`.as('current_user_likes')
+				userLike: sql<number>`COALESCE(${user_like.count}, 0)`.as('current_user_likes'),
+				totalPages:
+					sql<number>`CAST(CEIL(COUNT(*) OVER () / ${Number(perPage).toFixed(1)}) AS INT)`.as(
+						'total_pages'
+					)
 			})
 			.from(notebooks)
 			.leftJoin(notebook_likes, eq(notebook_likes.notebookId, notebooks.id))
@@ -129,7 +141,18 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			.leftJoin(user_like, eq(user_like.notebookId, notebooks.id))
 			.leftJoin(notebook_tags, eq(notebook_tags.notebookId, notebooks.id))
 			.where(and(...conditions))
-			.orderBy((aliases) => [desc(aliases.likes), desc(aliases.createdAt)]);
+			.orderBy((aliases) => [desc(aliases.likes), desc(aliases.createdAt)])
+			.limit(perPage)
+			.offset((current - 1) * perPage);
+
+		if (!rows.length) return { notebooks: [], pagination: { current: 1, total: 0 } };
+
+		const [{ totalPages }] = rows;
+
+		return {
+			notebooks: rows.map(({ totalPages, ...notebook }) => notebook),
+			pagination: { current, total: totalPages }
+		};
 	}
 
 	async create(data: NewNotebook): Promise<Notebook> {

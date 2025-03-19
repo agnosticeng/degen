@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
+	import Pagination from '$lib/cmpnt/Pagination.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
@@ -42,7 +43,7 @@
 
 <nav class="trends">
 	{#each data.trends.slice(0, 5) as trend}
-		<a href={getTagHref(new URL(page.url), trend.name)}>
+		<a href={getTagHref(page.url, trend.name)}>
 			<button class="trend-button" aria-current={selectedTags.includes(trend.name)}>
 				<i>#</i>{trend.name}
 			</button>
@@ -68,7 +69,7 @@
 							<h3>{item.createdAt.toDateString()}</h3>
 							<div class="notebook-trends">
 								{#each item.tags as trend}
-									<a href={getTagHref(new URL(page.url), trend)}>
+									<a href={getTagHref(page.url, trend)}>
 										<button class="trend-button" aria-current={selectedTags.includes(trend)}>
 											<i>#</i>{trend}
 										</button>
@@ -90,6 +91,7 @@
 			</li>
 		{/each}
 	</ul>
+	<Pagination pagination={data.pagination} />
 </section>
 
 <style>

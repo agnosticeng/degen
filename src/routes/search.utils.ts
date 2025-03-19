@@ -23,8 +23,9 @@ export function getTagHref(url: URL, tagName: string) {
 	if (tags.includes(tagName)) q = q.replace(`#${tagName}`, '').trim();
 	else q = q.concat(' ', `#${tagName}`).trim();
 
-	if (q) url.searchParams.set('q', q);
-	else url.searchParams.delete('q');
+	const newUrl = new URL(url);
+	newUrl.search = '';
+	if (q) newUrl.searchParams.set('q', q);
 
-	return url.toString();
+	return newUrl.toString();
 }
