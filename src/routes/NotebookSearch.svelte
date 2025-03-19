@@ -115,6 +115,9 @@
 		transition: all 0.2s ease;
 		text-align: start;
 		width: 100%;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		overflow: hidden;
 
 		&:not(:disabled):hover {
 			cursor: pointer;

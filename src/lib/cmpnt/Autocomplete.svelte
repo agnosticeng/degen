@@ -37,7 +37,7 @@
 				middleware: [
 					size({
 						apply({ elements, rects }) {
-							Object.assign(elements.floating.style, { minWidth: `${rects.reference.width}px` });
+							Object.assign(elements.floating.style, { width: `${rects.reference.width}px` });
 						}
 					}),
 					offset(5),
