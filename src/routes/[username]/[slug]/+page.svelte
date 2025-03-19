@@ -26,7 +26,7 @@
 
 	let { data }: PageProps = $props();
 
-	let moreNotebookSelect: ReturnType<typeof Select>;
+	let moreNotebookSelect = $state<ReturnType<typeof Select>>();
 
 	let notebook = $state.raw(selectNotebook(data.notebook));
 	function selectNotebook(n: PageProps['data']['notebook']): Notebook {
@@ -113,7 +113,7 @@
 	let setTagsModal: ReturnType<typeof SetTagsModal>;
 
 	async function handleDelete() {
-		moreNotebookSelect.close();
+		moreNotebookSelect?.close();
 		const confirmed = await confirm({
 			title: 'Delete Notebook',
 			description: `This action cannot be undone. This will permanently delete the <b>${notebook.title}</b> Notebook.`,
@@ -149,11 +149,6 @@
 		<button class="share" onclick={() => shareModal.show()}>
 			<Globe size="16" />Share...
 		</button>
-		{#if data.isEditable}
-			<button class="save" onclick={() => save($state.snapshot(blocks))}>
-				<FloppyDiskBack size="16" />
-			</button>
-		{/if}
 		<LikeButton
 			disabled={data.isEditable || !data.authenticated}
 			likes={likeCount}
@@ -161,27 +156,20 @@
 			{userLike}
 			onLike={handleLike}
 		/>
-		<button class="more" onclick={(e) => moreNotebookSelect.open(e.currentTarget)}>
-			<DotsThree size="16" />
-		</button>
-		<Select bind:this={moreNotebookSelect} placement="bottom-end">
-			<ul role="menu" class="share-select">
-				<li>
-					<button
-						onclick={() => {
-							shareModal.show();
-							moreNotebookSelect.close();
-						}}
-					>
-						<Globe size="14" />Share...
-					</button>
-				</li>
-				{#if data.isEditable}
+		{#if data.isEditable}
+			<button class="save" onclick={() => save($state.snapshot(blocks))}>
+				<FloppyDiskBack size="16" />
+			</button>
+			<button class="more" onclick={(e) => moreNotebookSelect?.open(e.currentTarget)}>
+				<DotsThree size="16" />
+			</button>
+			<Select bind:this={moreNotebookSelect} placement="bottom-end">
+				<ul role="menu" class="share-select">
 					<li>
 						<button
 							onclick={() => {
 								renameModal.show();
-								moreNotebookSelect.close();
+								moreNotebookSelect?.close();
 							}}
 						>
 							<PencilSimpleLine size="14" />Rename
@@ -191,7 +179,7 @@
 						<button
 							onclick={() => {
 								setTagsModal.show();
-								moreNotebookSelect.close();
+								moreNotebookSelect?.close();
 							}}
 						>
 							<TagIcon size="14" />Set tags
@@ -203,9 +191,9 @@
 							<Trash size="14" />Delete
 						</button>
 					</li>
-				{/if}
-			</ul>
-		</Select>
+				</ul>
+			</Select>
+		{/if}
 	</div>
 </header>
 <ShareModal
