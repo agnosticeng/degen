@@ -36,7 +36,7 @@ interface Pagination {
 	perPage?: number;
 }
 
-interface NotebookPage {
+export interface NotebookPage {
 	notebooks: (Notebook & { likes: number; author: User; userLike: number; tags: Tag['name'][] })[];
 	pagination: { current: number; total: number };
 }

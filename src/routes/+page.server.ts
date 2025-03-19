@@ -17,12 +17,18 @@ export const load = (async ({ url, locals, parent }) => {
 		trends.map((t) => t.name)
 	);
 
-	const { notebooks, pagination } = await notebookRepository.list({
-		search,
-		tags,
-		visibilities: ['public'],
-		currentUserId: locals.user?.id
-	});
+	let page = parseInt(url.searchParams.get('page') ?? '1', 10);
+	if (Number.isNaN(page) || page <= 0) page = 1;
+
+	const { notebooks, pagination } = await notebookRepository.list(
+		{
+			search,
+			tags,
+			visibilities: ['public'],
+			currentUserId: locals.user?.id
+		},
+		{ current: page }
+	);
 
 	return { notebooks, trends, pagination };
 }) satisfies PageServerLoad;

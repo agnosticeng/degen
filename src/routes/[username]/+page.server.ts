@@ -19,13 +19,19 @@ export const load = (async ({ url, locals, params, parent }) => {
 		const visibilities: Notebook['visibility'][] = ['public'];
 		if (author.id === locals.user?.id) visibilities.push('private', 'unlisted');
 
-		const { notebooks, pagination } = await notebookRepository.list({
-			currentUserId: locals.user?.id,
-			authorId: author.id,
-			visibilities,
-			search,
-			tags
-		});
+		let page = parseInt(url.searchParams.get('page') ?? '1', 10);
+		if (Number.isNaN(page) || page <= 0) page = 1;
+
+		const { notebooks, pagination } = await notebookRepository.list(
+			{
+				currentUserId: locals.user?.id,
+				authorId: author.id,
+				visibilities,
+				search,
+				tags
+			},
+			{ current: page }
+		);
 
 		return { author, notebooks, pagination };
 	} catch (e) {

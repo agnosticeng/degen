@@ -49,11 +49,18 @@
 		if (typeof q !== 'string') return;
 
 		const url = new URL(searchURL);
+		url.search = '';
 		if (q.length) url.searchParams.set('q', q);
-		else url.searchParams.delete('q');
 
 		await goto(url, { state: { searchBar: true } });
 		autocomplete?.close();
+	}
+
+	async function apply(url: URL, q: string) {
+		const nextUrl = new URL(url);
+		nextUrl.search = '';
+		if (q.length) nextUrl.searchParams.set('q', search);
+		await goto(nextUrl, { state: { searchBar: true } });
 	}
 </script>
 
@@ -69,11 +76,9 @@
 			{#if typeof trend === 'string'}
 				<button
 					type="button"
-					onclick={() => {
+					onclick={async () => {
 						autocomplete?.close();
-						const url = new URL(searchURL);
-						url.searchParams.set('q', search);
-						goto(url, { state: { searchBar: true } });
+						await apply(searchURL, search);
 					}}
 				>
 					Search: {trend}
@@ -81,12 +86,10 @@
 			{:else}
 				<button
 					type="button"
-					onclick={() => {
+					onclick={async () => {
 						search = search.trim().concat(' ', `#${trend.name}`).trim();
 						autocomplete?.close();
-						const url = new URL(searchURL);
-						url.searchParams.set('q', search);
-						goto(url, { state: { searchBar: true } });
+						await apply(searchURL, search);
 					}}
 				>
 					<i>#</i>{trend.name}
