@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
@@ -15,6 +16,7 @@
 	import type { ExecutionWithResultURL } from '$lib/server/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
+	import type { Tag } from '$lib/server/repositories/tags';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Cell from './Cell.svelte';
@@ -26,7 +28,7 @@
 
 	let { data }: PageProps = $props();
 
-	let moreNotebookSelect: ReturnType<typeof Select>;
+	let moreNotebookSelect = $state<ReturnType<typeof Select>>();
 
 	let notebook = $state.raw(selectNotebook(data.notebook));
 	function selectNotebook(n: PageProps['data']['notebook']): Notebook {
@@ -113,7 +115,7 @@
 	let setTagsModal: ReturnType<typeof SetTagsModal>;
 
 	async function handleDelete() {
-		moreNotebookSelect.close();
+		moreNotebookSelect?.close();
 		const confirmed = await confirm({
 			title: 'Delete Notebook',
 			description: `This action cannot be undone. This will permanently delete the <b>${notebook.title}</b> Notebook.`,
@@ -128,6 +130,12 @@
 				goto('/');
 			}
 		}
+	}
+
+	function tagHref(tag: Tag['name']) {
+		const url = new URL(page.url.origin);
+		url.searchParams.set('q', `#${tag}`);
+		return url.toString();
 	}
 </script>
 
@@ -149,11 +157,6 @@
 		<button class="share" onclick={() => shareModal.show()}>
 			<Globe size="16" />Share...
 		</button>
-		{#if data.isEditable}
-			<button class="save" onclick={() => save($state.snapshot(blocks))}>
-				<FloppyDiskBack size="16" />
-			</button>
-		{/if}
 		<LikeButton
 			disabled={data.isEditable || !data.authenticated}
 			likes={likeCount}
@@ -161,27 +164,20 @@
 			{userLike}
 			onLike={handleLike}
 		/>
-		<button class="more" onclick={(e) => moreNotebookSelect.open(e.currentTarget)}>
-			<DotsThree size="16" />
-		</button>
-		<Select bind:this={moreNotebookSelect} placement="bottom-end">
-			<ul role="menu" class="share-select">
-				<li>
-					<button
-						onclick={() => {
-							shareModal.show();
-							moreNotebookSelect.close();
-						}}
-					>
-						<Globe size="14" />Share...
-					</button>
-				</li>
-				{#if data.isEditable}
+		{#if data.isEditable}
+			<button class="save" onclick={() => save($state.snapshot(blocks))}>
+				<FloppyDiskBack size="16" />
+			</button>
+			<button class="more" onclick={(e) => moreNotebookSelect?.open(e.currentTarget)}>
+				<DotsThree size="16" />
+			</button>
+			<Select bind:this={moreNotebookSelect} placement="bottom-end">
+				<ul role="menu" class="share-select">
 					<li>
 						<button
 							onclick={() => {
 								renameModal.show();
-								moreNotebookSelect.close();
+								moreNotebookSelect?.close();
 							}}
 						>
 							<PencilSimpleLine size="14" />Rename
@@ -191,7 +187,7 @@
 						<button
 							onclick={() => {
 								setTagsModal.show();
-								moreNotebookSelect.close();
+								moreNotebookSelect?.close();
 							}}
 						>
 							<TagIcon size="14" />Set tags
@@ -203,9 +199,9 @@
 							<Trash size="14" />Delete
 						</button>
 					</li>
-				{/if}
-			</ul>
-		</Select>
+				</ul>
+			</Select>
+		{/if}
 	</div>
 </header>
 <ShareModal
@@ -237,9 +233,13 @@
 </div>
 
 {#if tags.length}
-	<div class="topics">
-		{#each tags as topic}
-			<span><i>#</i>{topic.name}</span>
+	<div class="tags">
+		{#each tags as tag}
+			<a href={tagHref(tag.name)}>
+				<button class="tag-button">
+					<i>#</i>{tag.name}
+				</button>
+			</a>
 		{/each}
 	</div>
 {/if}
@@ -384,7 +384,7 @@
 		}
 	}
 
-	.topics {
+	.tags {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -392,7 +392,7 @@
 		margin: 8px 0;
 		padding-bottom: 16px;
 
-		& > span {
+		& > a > button {
 			background-color: hsl(0, 0%, 10%);
 			padding: 2px 4px;
 			border-radius: 4px;
@@ -405,6 +405,15 @@
 				font-variant: normal;
 				color: hsl(0, 0%, 33%);
 				transition: color 0.2s ease;
+			}
+
+			&:not(:disabled):hover {
+				background-color: hsl(0, 0%, 20%);
+				color: hsl(0, 0%, 90%);
+
+				& > i {
+					color: hsl(0, 0%, 43%);
+				}
 			}
 		}
 	}
