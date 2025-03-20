@@ -19,12 +19,12 @@ export interface Execution {
 	picked_at?: string;
 	progress?: Progress;
 	completed_at?: string;
-	result?: ProxyResult;
+	result?: Omit<ProxyResult, 'data'>;
 	error?: string;
 }
 
 export interface ExecutionWithResultURL extends Omit<Execution, 'created_at'> {
-	result_url: string;
+	result_url?: string;
 	created_at: Date;
 }
 

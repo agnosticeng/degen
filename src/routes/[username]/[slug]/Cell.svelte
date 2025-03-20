@@ -75,6 +75,7 @@
 	});
 
 	async function fetchResult(execution: ExecutionWithResultURL): Promise<ProxyResult | undefined> {
+		if (!execution.result_url) return;
 		const response = await fetch(execution.result_url);
 		if (response.ok) return await response.json();
 	}
