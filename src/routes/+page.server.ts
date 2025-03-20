@@ -5,6 +5,7 @@ import { notebookRepository, type Notebook } from '$lib/server/repositories/note
 import { userRepository, type User } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
+import { kebabCase } from 'lodash';
 import type { Actions, PageServerLoad } from './$types';
 import { parse } from './search.utils';
 
@@ -79,7 +80,7 @@ export const actions = {
 		try {
 			notebook = await notebookRepository.create({
 				title: title,
-				slug: title.toLowerCase().replace(/\s+/g, '-'),
+				slug: kebabCase(title),
 				authorId: locals.user.id,
 				visibility: 'private'
 			});
