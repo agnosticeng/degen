@@ -1,4 +1,4 @@
-import { search } from '$lib/server/proxy';
+import { getBlocksWithExecutions } from '$lib/server/proxy';
 import { NotFound } from '$lib/server/repositories/errors';
 import { notebookRepository } from '$lib/server/repositories/notebooks';
 import { secretRepository } from '$lib/server/repositories/secrets';
@@ -21,11 +21,11 @@ export const load = (async ({ params, locals, url }) => {
 			)
 		);
 
-		const blocks = await search(
+		const blocks = await getBlocksWithExecutions(
 			notebook.blocks,
+			await secretRepository.list(notebook.authorId),
 			locals.user?.id ?? 'public',
-			url.hostname,
-			await secretRepository.list(notebook.authorId)
+			url.hostname
 		);
 
 		return {
