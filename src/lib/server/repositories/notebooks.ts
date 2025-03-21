@@ -59,7 +59,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		return columns;
 	}
 
-	async list(specs: NotebookListSpecs, { current = 1, perPage = 20 }: Pagination = {}) {
+	async list(specs: NotebookListSpecs, { current = 1, perPage = 15 }: Pagination = {}) {
 		const notebook_likes = this.db.$with('notebook_likes').as(
 			this.db
 				.select({
