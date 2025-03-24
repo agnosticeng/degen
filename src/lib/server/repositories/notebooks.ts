@@ -43,6 +43,9 @@ export interface NotebookPage {
 
 export interface NotebookRepository {
 	list(specs: NotebookListSpecs, pagination?: Pagination): Promise<NotebookPage>;
+	listForSitemap(): Promise<
+		{ username: User['username']; slug: Notebook['slug']; lastModification: Date }[]
+	>;
 	create(data: NewNotebook): Promise<Notebook>;
 	read(
 		...specs: Specification<Notebook>[]
@@ -153,6 +156,22 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			notebooks: rows.map(({ totalPages, ...notebook }) => notebook),
 			pagination: { current, total: totalPages }
 		};
+	}
+
+	async listForSitemap() {
+		const rows = await this.db.query.notebooks.findMany({
+			columns: { slug: true, updatedAt: true },
+			with: { author: { columns: { username: true } }, blocks: { columns: { updatedAt: true } } },
+			where: and(eq(notebooks.visibility, 'public'), isNull(notebooks.deletedAt))
+		});
+
+		return rows.map((r) => ({
+			username: r.author.username,
+			slug: r.slug,
+			lastModification: new Date(
+				Math.max(r.updatedAt.getTime(), ...r.blocks.map((b) => b.updatedAt.getTime()))
+			)
+		}));
 	}
 
 	async create(data: NewNotebook): Promise<Notebook> {
