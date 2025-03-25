@@ -89,7 +89,7 @@
 		padding: 0;
 		margin: 0;
 
-		max-height: 130px;
+		max-height: 230px;
 		border: 1px solid hsl(0, 0%, 20%);
 		border-radius: 6px;
 		overflow-y: auto;

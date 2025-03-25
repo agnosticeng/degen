@@ -11,12 +11,13 @@
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
 	import TagIcon from '$lib/cmpnt/svg/tag.svelte';
 	import Trash from '$lib/cmpnt/svg/trash.svelte';
+	import Tag from '$lib/cmpnt/Tag.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import { PreventNavigation } from '$lib/navigation.svelte';
 	import type { ExecutionWithResultURL } from '$lib/server/proxy';
 	import type { EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
-	import type { Tag } from '$lib/server/repositories/tags';
+	import type { Tag as NotebookTag } from '$lib/server/repositories/tags';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Cell from './Cell.svelte';
@@ -132,7 +133,7 @@
 		}
 	}
 
-	function tagHref(tag: Tag['name']) {
+	function tagHref(tag: NotebookTag['name']) {
 		const url = new URL(page.url.origin);
 		url.searchParams.set('q', `#${tag}`);
 		return url.toString();
@@ -236,9 +237,7 @@
 	<div class="tags">
 		{#each tags as tag}
 			<a href={tagHref(tag.name)}>
-				<button class="tag-button">
-					<i>#</i>{tag.name}
-				</button>
+				<Tag name={tag.name} />
 			</a>
 		{/each}
 	</div>
@@ -391,31 +390,6 @@
 		gap: 10px;
 		margin: 8px 0;
 		padding-bottom: 16px;
-
-		& > a > button {
-			background-color: hsl(0, 0%, 10%);
-			padding: 2px 4px;
-			border-radius: 4px;
-			font-weight: 400;
-			transition: all 0.2s ease;
-			font-size: 12px;
-			line-height: 16px;
-
-			& > i {
-				font-variant: normal;
-				color: hsl(0, 0%, 33%);
-				transition: color 0.2s ease;
-			}
-
-			&:not(:disabled):hover {
-				background-color: hsl(0, 0%, 20%);
-				color: hsl(0, 0%, 90%);
-
-				& > i {
-					color: hsl(0, 0%, 43%);
-				}
-			}
-		}
 	}
 
 	hr {

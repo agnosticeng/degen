@@ -4,6 +4,7 @@
 	import Pagination from '$lib/cmpnt/Pagination.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
+	import Tag from '$lib/cmpnt/Tag.svelte';
 	import type { PageProps } from './$types';
 	import { getTagHref, parse } from './search.utils';
 
@@ -43,9 +44,7 @@
 <nav class="trends">
 	{#each data.trends.slice(0, 5) as trend}
 		<a href={getTagHref(page.url, trend.name)}>
-			<button class="trend-button" aria-current={selectedTags.includes(trend.name)}>
-				<i>#</i>{trend.name}
-			</button>
+			<Tag name={trend.name} selected={selectedTags.includes(trend.name)} />
 		</a>
 	{/each}
 </nav>
@@ -66,9 +65,7 @@
 							<div>
 								{#each item.tags as trend}
 									<a href={getTagHref(page.url, trend)}>
-										<button class="trend-button" aria-current={selectedTags.includes(trend)}>
-											<i>#</i>{trend}
-										</button>
+										<Tag selected={selectedTags.includes(trend)} name={trend} />
 									</a>
 								{/each}
 							</div>
@@ -77,6 +74,7 @@
 				</div>
 				<button
 					class="likes"
+					aria-label="Like"
 					disabled={!data.authenticated || item.userLike === 10 || item.authorId === data.user?.id}
 					class:full={item.userLike > 0}
 					onclick={() => handleLike(item, item.userLike + 1)}
@@ -112,36 +110,9 @@
 		margin: 0 auto;
 		padding: 30px 20px 20px;
 
-		& > a > .trend-button {
-			margin-bottom: 10px;
-		}
-	}
-
-	.trend-button {
-		background-color: hsl(0, 0%, 10%);
-		padding: 4px;
-		border-radius: 4px;
-		font-weight: 400;
-		transition: all 0.2s ease;
-		font-size: 12px;
-		line-height: 16px;
-		margin-right: 10px;
-
-		& > i {
-			font-variant: normal;
-			color: hsl(0, 0%, 33%);
-			transition: color 0.2s ease;
-		}
-
-		&:not(:disabled):hover,
-		&[aria-current='true'] {
-			background-color: hsl(0, 0%, 20%);
-			color: hsl(0, 0%, 90%);
-
-			& > i {
-				color: hsl(0, 0%, 43%);
-			}
-		}
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
 	}
 
 	ul {
@@ -196,7 +167,7 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		height: 20px;
+		height: 24px;
 	}
 
 	.author-info h2 {
@@ -214,6 +185,12 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		overflow: hidden;
+	}
+
+	.author-info > div {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 	}
 
 	@media screen and (max-width: 768px) {
