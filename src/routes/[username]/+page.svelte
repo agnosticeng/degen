@@ -67,7 +67,7 @@
 							{/if}
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
-							<div class="notebook-trends">
+							<div>
 								{#each item.tags as trend}
 									<a href={getTagHref(page.url, trend)}>
 										<button class="trend-button" aria-current={selectedTags.includes(trend)}>
@@ -95,31 +95,25 @@
 </section>
 
 <style>
-	div.notebook-trends {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
 	.trends {
 		max-width: 1024px;
 		margin: 0 auto;
 		padding: 30px 20px 20px;
 
 		& > a > .trend-button {
-			margin-right: 10px;
 			margin-bottom: 10px;
 		}
 	}
 
 	.trend-button {
 		background-color: hsl(0, 0%, 10%);
-		padding: 2px 4px;
+		padding: 4px;
 		border-radius: 4px;
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
 		line-height: 16px;
+		margin-right: 10px;
 
 		& > i {
 			font-variant: normal;
@@ -187,7 +181,7 @@
 	.author-info {
 		display: flex;
 		align-items: center;
-		gap: 5px;
+		gap: 10px;
 		height: 20px;
 	}
 

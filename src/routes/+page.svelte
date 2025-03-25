@@ -66,11 +66,7 @@
 							<div>
 								{#each item.tags as trend}
 									<a href={getTagHref(page.url, trend)}>
-										<button
-											class="trend-button"
-											style="margin-right: 4px"
-											aria-current={selectedTags.includes(trend)}
-										>
+										<button class="trend-button" aria-current={selectedTags.includes(trend)}>
 											<i>#</i>{trend}
 										</button>
 									</a>
@@ -117,19 +113,19 @@
 		padding: 30px 20px 20px;
 
 		& > a > .trend-button {
-			margin-right: 10px;
 			margin-bottom: 10px;
 		}
 	}
 
 	.trend-button {
 		background-color: hsl(0, 0%, 10%);
-		padding: 2px 4px;
+		padding: 4px;
 		border-radius: 4px;
 		font-weight: 400;
 		transition: all 0.2s ease;
 		font-size: 12px;
 		line-height: 16px;
+		margin-right: 10px;
 
 		& > i {
 			font-variant: normal;
@@ -197,7 +193,7 @@
 	.author-info {
 		display: flex;
 		align-items: center;
-		gap: 5px;
+		gap: 10px;
 		height: 20px;
 	}
 
