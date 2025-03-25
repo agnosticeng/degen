@@ -28,7 +28,15 @@ class DrizzleBlockRepository implements BlockRepository {
 
 	async batchCreate(data: NewBlock[]): Promise<Block[]> {
 		if (!data.length) return [];
-		return await this.db.insert(blocks).values(data).returning();
+		return await this.db
+			.insert(blocks)
+			.values(
+				data.map((block) => ({
+					...block,
+					metadata: block.type === 'sql' ? (block.metadata ?? { type: 'table' }) : null
+				}))
+			)
+			.returning();
 	}
 
 	async batchUpdate([first, ...rest]: BlockToUpdate[]): Promise<Block[]> {
@@ -51,7 +59,7 @@ class DrizzleBlockRepository implements BlockRepository {
 				pinned: data.pinned,
 				position: data.position,
 				type: data.type,
-				metadata: data.metadata,
+				metadata: data.type === 'sql' ? (data.metadata ?? { type: 'table' }) : null,
 				updatedAt
 			})
 			.where(eq(blocks.id, id))
