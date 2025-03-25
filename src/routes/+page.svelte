@@ -171,6 +171,7 @@
 		display: flex;
 		align-items: center;
 		flex: 1;
+		overflow: hidden;
 	}
 
 	.item-content > :global(.avatar) {
@@ -179,15 +180,16 @@
 
 	.item-info {
 		margin-left: 20px;
+		overflow: hidden;
 	}
 
 	.item-info h1 {
-		display: flex;
-		align-items: center;
-		gap: 10px;
 		font-size: 16px;
 		margin: 0 0 7px;
 		font-weight: 500;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		overflow: hidden;
 	}
 
 	.author-info {
@@ -209,6 +211,9 @@
 		font-size: 14px;
 		margin: 0;
 		font-weight: 300;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		overflow: hidden;
 	}
 
 	@media screen and (max-width: 768px) {
