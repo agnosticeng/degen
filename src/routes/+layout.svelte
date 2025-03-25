@@ -47,7 +47,7 @@
 
 <header>
 	<span>
-		<a href="/"><Logo /></a>
+		<a href="/" aria-label="Home"><Logo /></a>
 	</span>
 	{#if searchBarVisible}
 		<NotebookSearch tags={data.trends} />
@@ -63,7 +63,11 @@
 				<button class="sign-in" onclick={login}>Sign in</button>
 			{/if}
 		{/if}
-		<button class="icon-button" onclick={() => (searchBarVisible = !searchBarVisible)}>
+		<button
+			class="icon-button"
+			aria-label={searchBarVisible ? 'Close search bar' : 'Show search bar'}
+			onclick={() => (searchBarVisible = !searchBarVisible)}
+		>
 			{#if searchBarVisible}
 				<X size="20" />
 			{:else}

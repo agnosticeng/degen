@@ -6,14 +6,15 @@
 	import Modal from '$lib/cmpnt/Modal.svelte';
 	import TagIcon from '$lib/cmpnt/svg/tag.svelte';
 	import X from '$lib/cmpnt/svg/x.svelte';
+	import Tag from '$lib/cmpnt/Tag.svelte';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
-	import type { NewTag, Tag } from '$lib/server/repositories/tags';
+	import type { NewTag, Tag as NotebookTag } from '$lib/server/repositories/tags';
 	import { tick } from 'svelte';
 
 	interface Props {
 		notebook: Notebook;
-		tags: Tag[];
-		onSuccess?: (tags: Tag[]) => void;
+		tags: NotebookTag[];
+		onSuccess?: (tags: NotebookTag[]) => void;
 	}
 
 	let { notebook, tags: _tags, onSuccess }: Props = $props();
@@ -44,7 +45,7 @@
 	}
 
 	let input = $state<HTMLInputElement>();
-	let autocompletions = $state.raw<Tag[]>([]);
+	let autocompletions = $state.raw<NotebookTag[]>([]);
 	let filter = $state('');
 	let autocomplete = $state<ReturnType<typeof Autocomplete>>();
 	const filteredTags = $derived.by<NewTag[]>(() => {
@@ -97,8 +98,7 @@
 				<div class="topics">
 					{#each tags as tag, i (tag.name)}
 						<span class="topic">
-							<i>#</i>
-							{tag.name}
+							<Tag name={tag.name} disabled />
 							<button type="button" onclick={() => remove(i)}><X size="12" /></button>
 						</span>
 					{/each}
@@ -191,14 +191,14 @@
 		align-items: center;
 		gap: 10px;
 		background-color: hsl(0deg 0% 3%);
-		padding: 5px 12px;
+		padding: 8px 12px;
 		border-radius: 5px;
 		border: 1px solid hsl(0deg 0% 20%);
 	}
 
 	span.topic {
 		background-color: hsl(0, 0%, 10%);
-		padding: 2px 4px;
+		padding: 0 4px 0 0;
 		border-radius: 4px;
 		font-weight: 400;
 		transition: all 0.2s ease;
@@ -206,12 +206,6 @@
 		line-height: 16px;
 		display: flex;
 		align-items: center;
-
-		& > i {
-			font-variant: normal;
-			color: hsl(0, 0%, 33%);
-			transition: color 0.2s ease;
-		}
 
 		& > button {
 			margin-left: 6px;

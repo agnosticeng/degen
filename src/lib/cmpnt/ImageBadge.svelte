@@ -9,7 +9,7 @@
 </script>
 
 <div class="avatar" style:width="{size}px" style:height="{size}px">
-	<img {alt} {src} />
+	<img {alt} {src} loading="lazy" />
 </div>
 
 <style>

@@ -4,6 +4,7 @@
 	import Pagination from '$lib/cmpnt/Pagination.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
+	import Tag from '$lib/cmpnt/Tag.svelte';
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import { getTagHref, parse } from '../search.utils';
 	import type { PageProps } from './$types';
@@ -39,14 +40,17 @@
 
 <svelte:head>
 	<title>Degen • {data.author.username}</title>
+	<meta
+		name="description"
+		content="Discover data-driven notebooks from {data.author
+			.username} on Degen. Explore SQL queries, Markdown insights, and powerful charts created by data enthusiasts!"
+	/>
 </svelte:head>
 
 <nav class="trends">
 	{#each data.trends.slice(0, 5) as trend}
 		<a href={getTagHref(page.url, trend.name)}>
-			<button class="trend-button" aria-current={selectedTags.includes(trend.name)}>
-				<i>#</i>{trend.name}
-			</button>
+			<Tag name={trend.name} selected={selectedTags.includes(trend.name)} />
 		</a>
 	{/each}
 </nav>
@@ -67,12 +71,10 @@
 							{/if}
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
 							<h3>{item.createdAt.toDateString()}</h3>
-							<div class="notebook-trends">
+							<div>
 								{#each item.tags as trend}
 									<a href={getTagHref(page.url, trend)}>
-										<button class="trend-button" aria-current={selectedTags.includes(trend)}>
-											<i>#</i>{trend}
-										</button>
+										<Tag selected={selectedTags.includes(trend)} name={trend} />
 									</a>
 								{/each}
 							</div>
@@ -82,6 +84,7 @@
 
 				<button
 					class="likes"
+					aria-label="Like"
 					disabled={!data.authenticated || item.userLike === 10 || item.authorId === data.user?.id}
 					class:full={item.userLike > 0}
 					onclick={() => handleLike(item, item.userLike + 1)}
@@ -95,47 +98,14 @@
 </section>
 
 <style>
-	div.notebook-trends {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
 	.trends {
 		max-width: 1024px;
 		margin: 0 auto;
 		padding: 30px 20px 20px;
 
-		& > a > .trend-button {
-			margin-right: 10px;
-			margin-bottom: 10px;
-		}
-	}
-
-	.trend-button {
-		background-color: hsl(0, 0%, 10%);
-		padding: 2px 4px;
-		border-radius: 4px;
-		font-weight: 400;
-		transition: all 0.2s ease;
-		font-size: 12px;
-		line-height: 16px;
-
-		& > i {
-			font-variant: normal;
-			color: hsl(0, 0%, 33%);
-			transition: color 0.2s ease;
-		}
-
-		&:not(:disabled):hover,
-		&[aria-current='true'] {
-			background-color: hsl(0, 0%, 20%);
-			color: hsl(0, 0%, 90%);
-
-			& > i {
-				color: hsl(0, 0%, 43%);
-			}
-		}
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
 	}
 
 	ul {
@@ -165,6 +135,8 @@
 		display: flex;
 		align-items: center;
 		flex: 1;
+
+		overflow: hidden;
 	}
 
 	.item-content > :global(.avatar) {
@@ -173,6 +145,7 @@
 
 	.item-info {
 		margin-left: 20px;
+		overflow: hidden;
 	}
 
 	.item-info h1 {
@@ -182,12 +155,15 @@
 		font-size: 16px;
 		margin: 0 0 7px;
 		font-weight: 500;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		overflow: hidden;
 	}
 
 	.author-info {
 		display: flex;
 		align-items: center;
-		gap: 5px;
+		gap: 10px;
 		height: 20px;
 	}
 
@@ -203,6 +179,15 @@
 		font-size: 14px;
 		margin: 0;
 		font-weight: 300;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		overflow: hidden;
+	}
+
+	.author-info > div {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 	}
 
 	@media screen and (max-width: 768px) {
