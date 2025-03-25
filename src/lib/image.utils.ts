@@ -52,5 +52,5 @@ function convertImage(image: HTMLImageElement) {
 	}
 
 	context.drawImage(image, 0, 0, canvas.width, canvas.height);
-	return canvas.toDataURL('image/jpeg', 1);
+	return canvas.toDataURL('image/jpeg', 0.8);
 }
