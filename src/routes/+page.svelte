@@ -39,6 +39,10 @@
 
 <svelte:head>
 	<title>Degen</title>
+	<meta
+		name="description"
+		content="Degen is the ultimate notebook platform for data lovers. Explore public notebooks with Markdown, SQL, and interactive charts. Analyze and visualize datasets easily!"
+	/>
 </svelte:head>
 
 <nav class="trends">

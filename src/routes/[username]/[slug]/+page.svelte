@@ -142,6 +142,11 @@
 
 <svelte:head>
 	<title>{data.notebook.author.username}/{data.notebook.title}</title>
+	<meta
+		name="description"
+		content="Dive into this data notebook on Degen: {data.notebook
+			.title}. Explore SQL queries, visual insights, and powerful datasets crafted by data lovers!"
+	/>
 </svelte:head>
 
 <svelte:window onkeydown={handleWindowKeydown} />

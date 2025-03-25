@@ -40,6 +40,11 @@
 
 <svelte:head>
 	<title>Degen • {data.author.username}</title>
+	<meta
+		name="description"
+		content="Discover data-driven notebooks from {data.author
+			.username} on Degen. Explore SQL queries, Markdown insights, and powerful charts created by data enthusiasts!"
+	/>
 </svelte:head>
 
 <nav class="trends">
