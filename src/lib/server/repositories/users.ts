@@ -23,7 +23,7 @@ class DrizzleUserRepository implements UserRepository {
 	async create(data: NewUser): Promise<User> {
 		const [user] = await this.db
 			.insert(users)
-			.values({ username: data.username, externalId: data.externalId, pictureURL: data.pictureURL })
+			.values({ username: data.username, externalId: data.externalId })
 			.onConflictDoUpdate({ target: users.externalId, set: { externalId: data.externalId } })
 			.returning();
 
@@ -35,17 +35,16 @@ class DrizzleUserRepository implements UserRepository {
 	async read(spec: Specification<User>): Promise<User> {
 		if (!isDrizzleSpecification(spec)) throw new TypeError('Invalid specification');
 
-		const user = await this.db.query.users.findFirst({ where: spec.toQuery() });
-
+		const [user] = await this.db.select().from(users).where(spec.toQuery());
 		if (user) return user;
 
 		throw new NotFound('User not found');
 	}
 
-	async update({ id, ...data }: UpdateUser) {
+	async update({ id }: UpdateUser) {
 		const [user] = await this.db
 			.update(users)
-			.set({ pictureURL: data.pictureURL, updatedAt: new Date() })
+			.set({ updatedAt: new Date() })
 			.where(eq(users.id, id))
 			.returning();
 		if (user) return user;

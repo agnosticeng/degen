@@ -6,7 +6,6 @@ if (!env.BUCKET_ENDPOINT) throw new Error('BUCKET_ENDPOINT is not set');
 if (!env.BUCKET_ACCESS_KEY_ID) throw new Error('BUCKET_ACCESS_KEY_ID is not set');
 if (!env.BUCKET_SECRET_ACCESS_KEY) throw new Error('BUCKET_SECRET_ACCESS_KEY is not set');
 if (!env.BUCKET_NAME) throw new Error('BUCKET_NAME is not set');
-if (!env.BUCKET_PUBLIC_DOMAIN) throw new Error('BUCKET_PUBLIC_DOMAIN is not set');
 
 class Bucket {
 	readonly prefix = 'profilepicture';
@@ -29,12 +28,6 @@ class Bucket {
 		const url = await this.getPutSignedURL(filename);
 		const response = await fetch(url, { method: 'PUT', body: file });
 		if (!response.ok) error(await response.text());
-	}
-
-	publicURL(filename: string) {
-		const url = new URL(env.BUCKET_PUBLIC_DOMAIN);
-		url.pathname = `/${this.prefix}/${filename}`;
-		return url.toString();
 	}
 }
 
