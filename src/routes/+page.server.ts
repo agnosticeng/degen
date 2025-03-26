@@ -2,7 +2,7 @@ import { bucket } from '$lib/server/bucket';
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
-import { userRepository, type User } from '$lib/server/repositories/users';
+import { userRepository } from '$lib/server/repositories/users';
 import { fail, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 import _ from 'lodash';
@@ -110,20 +110,15 @@ export const actions = {
 
 		const data = await request.formData();
 
-		let pictureURL: User['pictureURL'] = null;
+		const image = data.get('picture');
 
-		if (data.has('picture')) {
-			const image = data.get('picture');
+		if (!(image instanceof File)) return fail(400, { message: 'Missing file' });
 
-			if (!(image instanceof File)) return fail(400, { message: 'Missing file' });
+		const ext = image.name.split('.').pop() ?? '';
+		const filename = [locals.user.username, ext].filter(Boolean).join('.');
+		await bucket.upload(filename, image);
 
-			const ext = image.name.split('.').pop() ?? '';
-			const filename = [locals.user.username, ext].filter(Boolean).join('.');
-			await bucket.upload(filename, image);
-			pictureURL = bucket.publicURL(filename);
-		}
-
-		locals.user = await userRepository.update({ id: locals.user.id, pictureURL });
+		locals.user = await userRepository.update({ id: locals.user.id });
 		return { user: locals.user };
 	}
 } satisfies Actions;

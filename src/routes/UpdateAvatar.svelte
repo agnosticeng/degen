@@ -3,6 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import ImageBadge from '$lib/cmpnt/ImageBadge.svelte';
 	import Modal from '$lib/cmpnt/Modal.svelte';
+	import { getPictureProfileURL } from '$lib/cmpnt/ProfilePicture.svelte';
 	import Profile from '$lib/cmpnt/svg/profile.svelte';
 	import UserCircle from '$lib/cmpnt/svg/user-circle.svelte';
 	import { processProfilePicture } from '$lib/image.utils';
@@ -18,14 +19,14 @@
 
 	let open = $state(false);
 	let modal = $state<ReturnType<typeof Modal>>();
-	let pictureURL = $state(user.pictureURL);
+	let pictureURL = $state(getPictureProfileURL(user));
 	let fileToUpload = $state<File>();
 	let error = $state('');
 
 	export function show() {
 		open = true;
 		error = '';
-		pictureURL = user.pictureURL;
+		pictureURL = getPictureProfileURL(user);
 		fileToUpload = undefined;
 	}
 
@@ -49,12 +50,7 @@
 
 		return async ({ result }) => {
 			if (result.type === 'success' && result.data?.user) {
-				user = {
-					...result.data.user,
-					pictureURL: result.data.user.pictureURL
-						? result.data.user.pictureURL + '?v=' + result.data.user.updatedAt.getTime()
-						: null
-				};
+				user = result.data.user;
 				modal?.close();
 				await invalidateAll();
 			}

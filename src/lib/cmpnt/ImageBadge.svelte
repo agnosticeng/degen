@@ -1,15 +1,18 @@
 <script lang="ts">
+	import type { SvelteHTMLElements } from 'svelte/elements';
+
 	interface Props {
 		size?: number;
 		src: string;
 		alt: string;
+		onerror?: SvelteHTMLElements['image']['onerror'];
 	}
 
-	let { size = 30, src, alt }: Props = $props();
+	let { size = 30, src, alt, onerror }: Props = $props();
 </script>
 
 <div class="avatar" style:width="{size}px" style:height="{size}px">
-	<img {alt} {src} loading="lazy" />
+	<img {alt} {src} loading="lazy" {onerror} />
 </div>
 
 <style>

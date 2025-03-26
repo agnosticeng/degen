@@ -16,7 +16,6 @@ export const users = table(
 		id: int().primaryKey({ autoIncrement: true }),
 		externalId: text('external_id').notNull().unique(),
 		username: text().notNull().unique(),
-		pictureURL: text('picture_url'),
 		createdAt: int('created_at', { mode: 'timestamp' })
 			.notNull()
 			.default(sql`(unixepoch())`),
