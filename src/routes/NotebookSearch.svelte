@@ -48,11 +48,7 @@
 
 		if (typeof q !== 'string') return;
 
-		const url = new URL(searchURL);
-		url.search = '';
-		if (q.length) url.searchParams.set('q', q);
-
-		await goto(url, { state: { searchBar: true } });
+		await apply(searchURL, q);
 		autocomplete?.close();
 	}
 
