@@ -60,7 +60,7 @@
 				</button>
 			{/if}
 			{#if !data.authenticated}
-				<button class="sign-in" onclick={login}>Sign in</button>
+				<button class="sign-in" aria-label="Sign In" onclick={login}>Sign in</button>
 			{/if}
 		{/if}
 		<button

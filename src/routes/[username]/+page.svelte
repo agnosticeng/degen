@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { like } from '$lib/client/requests/notebooks';
+	import OrderBy, { parseBy, parseDir } from '$lib/cmpnt/OrderBy.svelte';
 	import Pagination from '$lib/cmpnt/Pagination.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
@@ -15,6 +17,9 @@
 	$effect(() => {
 		notebooks = data.notebooks;
 	});
+
+	const orderBy = $derived(parseBy(page.url.searchParams.get('by')));
+	const orderDir = $derived(parseDir(page.url.searchParams.get('dir')));
 
 	async function handleLike(notebook: (typeof notebooks)[number], count: number) {
 		const index = notebooks.indexOf(notebook);
@@ -47,12 +52,24 @@
 	/>
 </svelte:head>
 
-<nav class="trends">
-	{#each data.trends.slice(0, 5) as trend}
-		<a href={getTagHref(page.url, trend.name)}>
-			<Tag name={trend.name} selected={selectedTags.includes(trend.name)} />
-		</a>
-	{/each}
+<nav class="filters">
+	<div class="trends">
+		{#each data.trends.slice(0, 5) as trend}
+			<a href={getTagHref(page.url, trend.name)}>
+				<Tag name={trend.name} selected={selectedTags.includes(trend.name)} />
+			</a>
+		{/each}
+	</div>
+	<OrderBy
+		by={orderBy}
+		direction={orderDir}
+		onchange={async ({ by, direction }) => {
+			const url = new URL(page.url);
+			url.searchParams.set('by', by);
+			url.searchParams.set('dir', direction);
+			await goto(url, { state: page.state });
+		}}
+	/>
 </nav>
 
 <section class="list">
@@ -98,11 +115,28 @@
 </section>
 
 <style>
-	.trends {
+	.filters {
 		max-width: 1024px;
 		margin: 0 auto;
 		padding: 30px 20px 20px;
 
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+
+		@media screen and (max-width: 576px) {
+			flex-direction: column;
+			gap: 15px;
+			padding-bottom: 8px;
+
+			& > :global(*) {
+				width: 100%;
+			}
+		}
+	}
+
+	.trends {
+		flex: 1;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;

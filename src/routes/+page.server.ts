@@ -1,3 +1,4 @@
+import { parseBy, parseDir } from '$lib/cmpnt/OrderBy.svelte';
 import { bucket } from '$lib/server/bucket';
 import { deleteTokensFromCookies, getTokensFromCookies } from '$lib/server/cookies';
 import { blockRepository } from '$lib/server/repositories/blocks';
@@ -21,12 +22,16 @@ export const load = (async ({ url, locals, parent }) => {
 	let page = parseInt(url.searchParams.get('page') ?? '1', 10);
 	if (Number.isNaN(page) || page <= 0) page = 1;
 
+	const by = parseBy(url.searchParams.get('by'));
+	const direction = parseDir(url.searchParams.get('dir'));
+
 	const { notebooks, pagination } = await notebookRepository.list(
 		{
 			search,
 			tags,
 			visibilities: ['public'],
-			currentUserId: locals.user?.id
+			currentUserId: locals.user?.id,
+			sorting: { by, direction }
 		},
 		{ current: page }
 	);

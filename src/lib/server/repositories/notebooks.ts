@@ -29,6 +29,7 @@ interface NotebookListSpecs {
 	visibilities?: Notebook['visibility'][];
 	tags?: Tag['name'][];
 	search?: string;
+	sorting?: { by: 'likes' | 'title' | 'createdAt'; direction: 'asc' | 'desc' };
 }
 
 interface Pagination {
@@ -143,7 +144,11 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			.leftJoin(user_like, eq(user_like.notebookId, notebooks.id))
 			.leftJoin(notebook_tags, eq(notebook_tags.notebookId, notebooks.id))
 			.where(and(...conditions))
-			.orderBy((aliases) => [desc(aliases.likes), desc(aliases.createdAt)])
+			.orderBy((aliases) => {
+				const dir = getDrizzleDirection(specs.sorting?.direction ?? 'desc');
+				const by = specs.sorting?.by ?? 'likes';
+				return [dir(aliases[by]), desc(aliases.createdAt)];
+			})
 			.limit(perPage)
 			.offset((current - 1) * perPage);
 
@@ -246,6 +251,10 @@ class DrizzleNotebookRepository implements NotebookRepository {
 
 		if (result.rowsAffected > 1) throw new Error('Deleted more than 1 Notebook');
 	}
+}
+
+function getDrizzleDirection(direction: 'asc' | 'desc') {
+	return direction === 'asc' ? asc : desc;
 }
 
 export const notebookRepository: NotebookRepository = new DrizzleNotebookRepository(db);
