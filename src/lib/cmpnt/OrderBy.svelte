@@ -1,6 +1,12 @@
 <script lang="ts" module>
 	const ORDER_BY = ['likes', 'title', 'createdAt'] as const;
 
+	const ORDER_BY_LABEL_MAP = {
+		likes: 'likes',
+		title: 'title',
+		createdAt: 'creation date'
+	} as const;
+
 	export function parseBy(value: string | null): NonNullable<Props['by']> {
 		if (!value) return 'likes';
 
@@ -43,9 +49,13 @@
 </script>
 
 <div class="container" bind:this={container}>
-	<button onclick={() => select?.open()}>{by}</button>
+	<button aria-label="Sort by" title="Sort by {by}" onclick={() => select?.open()}>
+		{ORDER_BY_LABEL_MAP[by]}
+	</button>
 	<span class="separator"></span>
 	<button
+		aria-label="{direction}ending"
+		title="{direction}ending"
 		onclick={() => {
 			direction = direction === 'desc' ? 'asc' : 'desc';
 			onchange?.({ by, direction });
@@ -73,7 +83,7 @@
 						onclick={() => handleItemClick(value)}
 						onkeydown={(e) => ['Enter', ' '].includes(e.key) && e.currentTarget.click()}
 					>
-						{value}
+						{ORDER_BY_LABEL_MAP[value]}
 						<Check size="12" style={`opacity: ${checked ? '1' : '0'}`} />
 					</li>
 				{/each}
