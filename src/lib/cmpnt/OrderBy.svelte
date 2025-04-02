@@ -2,9 +2,9 @@
 	const ORDER_BY = ['likes', 'title', 'createdAt'] as const;
 
 	const ORDER_BY_LABEL_MAP = {
-		likes: 'likes',
-		title: 'title',
-		createdAt: 'creation date'
+		likes: 'Likes',
+		title: 'Title',
+		createdAt: 'Creation date'
 	} as const;
 
 	export function parseBy(value: string | null): NonNullable<Props['by']> {
@@ -111,6 +111,7 @@
 		min-width: 80px;
 		text-align: start;
 		font-size: 12px;
+		flex-grow: 1;
 	}
 
 	ul {

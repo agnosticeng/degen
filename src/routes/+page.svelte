@@ -134,6 +134,16 @@
 		display: flex;
 		align-items: baseline;
 		gap: 10px;
+
+		@media screen and (max-width: 576px) {
+			flex-direction: column;
+			gap: 15px;
+			padding-bottom: 8px;
+
+			& > :global(*) {
+				width: 100%;
+			}
+		}
 	}
 
 	.trends {
