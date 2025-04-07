@@ -1,42 +1,81 @@
-# sv
+# 📝 Degen – Open-Source Decentralized Notebook for Blockchain Analytics
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Degen is an **open-source, decentralized** notebook for blockchain analytics. If you've used Dune, Nansen, or Glassnode, you know the value of on-chain data—but also the pain points: **closed ecosystems, centralized control, and restricted data access**.
+
+Degen flips the model by giving **anyone** full control to **query, remix, and share** blockchain insights transparently.
 
 ## Preview
 
 ![Preview](.github/images/preview.png)
 
-## Creating a project
+🚀 **Live**: [dgn.space](https://dgn.space)
 
-If you're seeing this, you've probably already done this step. Congrats!
+---
 
-```bash
-# create a new project in the current directory
-npx sv create
+## ✨ Features
 
-# create a new project in my-app
-npx sv create my-app
+- **SQL-First Analytics** – Run and share **custom queries** on blockchain data.
+- **Fully Open Data** – No silos, **all on-chain data is queryable**.
+- **Decentralized & Composable** – Own your insights, **no centralized control**.
+- **Blazing-Fast Queries** – Built on **ClickHouse + SQLite (Turso)** for speed.
+- **Notebook-Style UI** – Write, visualize, and share analytics seamlessly.
+- **Data Visualization** – Interactive charts powered by **Plot**.
+- **Markdown Support** – Rich-text documentation using **Marked.js**.
+
+---
+
+## 🛠️ Tech Stack
+
+Degen is built with modern web technologies:
+
+- **Frontend**: [Svelte](https://svelte.dev/docs/svelte) + [SvelteKit](https://svelte.dev/docs/kit)
+- **Database**: [Turso (SQLite)](https://turso.tech/)
+- **ORM / Query Builder**: [Drizzle](https://orm.drizzle.team/)
+- **Markdown Parsing**: [Marked.js](https://marked.js.org/)
+- **Data Visualization**: [Plot](https://observablehq.com/@observablehq/plot)
+
+---
+
+## 🚀 Getting Started
+
+### 1️⃣ Clone the Repository
+
+```sh
+git clone https://github.com/agnosticeng/degen.git
+cd degen
 ```
 
-## Developing
+### 2️⃣ Install Dependencies
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```sh
+npm install
+```
 
-```bash
+### 3️⃣ Run the Development Server
+
+```sh
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+The app should now be running at **http://localhost:5173**.
 
-To create a production version of your app:
+---
 
-```bash
-npm run build
-```
+## 🤝 Contributing
 
-You can preview the production build with `npm run preview`.
+We welcome contributions! Feel free to submit **issues** and **pull requests** to improve the project.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+---
+
+## 📜 License
+
+Degen is **MIT-licensed**. See [LICENSE](./LICENSE) for details.
+
+---
+
+## 📢 Feedback & Support
+
+We’d love your feedback! What’s missing? What would make it more useful?
+
+🔗 **Try it out**: [dgn.space](https://dgn.space)  
+💬 **Join the discussion**: [GitHub Issues](https://github.com/agnosticeng/degen/issues)
