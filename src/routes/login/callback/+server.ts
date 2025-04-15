@@ -29,7 +29,7 @@ export const GET: RequestHandler = async (event) => {
 	let tokens: OAuth2Tokens;
 	try {
 		tokens = await auth0(event.url.origin).validateAuthorizationCode(code, codeVerifier);
-	} catch (e) {
+	} catch {
 		return new Response('Please restart the process.', { status: 400 });
 	}
 

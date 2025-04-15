@@ -1,5 +1,5 @@
 <script lang="ts">
-	let { size = 80, color = 'currentColor' } = $props();
+	let { size = 80 } = $props();
 </script>
 
 <svg xmlns="http://www.w3.org/2000/svg" width={size} height="48" fill="none" viewBox="0 0 500 300">
