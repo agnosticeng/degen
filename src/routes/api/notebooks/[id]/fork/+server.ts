@@ -38,7 +38,7 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 			}))
 		);
 
-		return json({ notebook: fork });
+		return json({ notebook: { ...fork, author: locals.user } });
 	} catch (e) {
 		if (e instanceof NotFound) error(404, { message: `Notebook not found: ${params.id}` });
 

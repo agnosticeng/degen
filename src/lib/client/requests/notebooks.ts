@@ -2,6 +2,7 @@ import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
 import type { Like } from '$lib/server/repositories/likes';
 import type { Notebook } from '$lib/server/repositories/notebooks';
 import type { NewTag, Tag } from '$lib/server/repositories/tags';
+import type { User } from '$lib/server/repositories/users';
 
 export async function updateBlocks(id: Notebook['id'], blocks: EditionBlock[]) {
 	const response = await fetch(`/api/notebooks/${id}/blocks`, {
@@ -86,5 +87,18 @@ export async function setTags(notebook: Notebook['id'], tags: NewTag[]) {
 	if (response.ok) {
 		const data: { tags: (Tag & { createdAt: string })[] } = await response.json();
 		return data.tags.map((t) => ({ ...t, createdAt: new Date(t.createdAt) }));
+	}
+}
+
+export async function fork(notebook: Notebook['id']) {
+	const response = await fetch(`/api/notebooks/${notebook}/fork`, { method: 'POST' });
+
+	if (response.ok) {
+		const data: { notebook: Notebook & { author: User } } = await response.json();
+		return {
+			...data.notebook,
+			createdAt: new Date(data.notebook.createdAt),
+			updatedAt: new Date(data.notebook.updatedAt)
+		};
 	}
 }

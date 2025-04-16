@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
+	import { deleteNotebook, fork, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
+	import BranchFork from '$lib/cmpnt/svg/branch-fork.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
@@ -15,7 +16,7 @@
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import { PreventNavigation } from '$lib/navigation.svelte';
 	import type { ExecutionWithResultURL } from '$lib/server/proxy';
-	import type { EditionBlock } from '$lib/server/repositories/blocks';
+	import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { Tag as NotebookTag } from '$lib/server/repositories/tags';
 	import type { PageProps } from './$types';
@@ -31,13 +32,13 @@
 
 	let moreNotebookSelect = $state<ReturnType<typeof Select>>();
 
-	let notebook = $state.raw(selectNotebook(data.notebook));
+	let notebook = $derived(selectNotebook(data.notebook));
 	function selectNotebook(n: PageProps['data']['notebook']): Notebook {
 		const { author, blocks, likes, tags, ...notebook } = n;
 		return notebook;
 	}
 
-	let likes = $state.raw(data.notebook.likes);
+	let likes = $derived(data.notebook.likes);
 	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
 	let userLike = $derived(likes.find((l) => l.userId === data.user?.id));
 	async function handleLike(count: number) {
@@ -49,11 +50,14 @@
 		}
 	}
 
-	let tags = $state.raw(data.notebook.tags);
+	let tags = $derived(data.notebook.tags);
 
 	let blocks = $state<(EditionBlock & { executions?: ExecutionWithResultURL[] })[]>(
 		data.notebook.blocks.slice()
 	);
+	$effect(() => {
+		blocks = data.notebook.blocks.slice();
+	});
 
 	const lastUpdate = $derived.by(() => {
 		return blocks.reduce(
@@ -81,7 +85,6 @@
 		const updated = await updateBlocks(data.notebook.id, positionned);
 		if (updated) {
 			blocker.prevent = false;
-			data.notebook.blocks = updated;
 			blocks.forEach((block, i) => {
 				const next = updated[i];
 				block.id = next.id;
@@ -92,6 +95,8 @@
 				block.pinned = next.pinned;
 				block.metadata = next.metadata;
 			});
+
+			data.notebook.blocks = $state.snapshot(blocks) as Block[];
 		}
 	}
 
@@ -173,6 +178,15 @@
 		{#if data.isEditable}
 			<button class="save" onclick={() => save($state.snapshot(blocks))}>
 				<FloppyDiskBack size="16" />
+			</button>
+			<button
+				class="fork"
+				onclick={async () => {
+					const n = await fork(notebook.id);
+					if (n) goto(`/${n.author.username}/${n.slug}`);
+				}}
+			>
+				<BranchFork size="16" />
 			</button>
 			<button class="more" onclick={(e) => moreNotebookSelect?.open(e.currentTarget)}>
 				<DotsThree size="16" />
