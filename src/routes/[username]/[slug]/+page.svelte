@@ -246,10 +246,25 @@
 		By <a href="/{data.notebook.author.username}">@{data.notebook.author.username}</a>
 	</div>
 	<div class="updated_at">
-		<PencilSimpleLine size="16" /><span title="Edited {notebook.updatedAt.toString()}">
+		<PencilSimpleLine size="16" />
+		<span title="Edited {notebook.updatedAt.toString()}">
 			Edited {lastUpdate.toDateString()}
 		</span>
 	</div>
+	{#if data.notebook.forkOf}
+		<div class="fork_of">
+			<BranchFork size="16" />
+			<span>
+				Fork of
+				<a
+					title={data.notebook.forkOf.title}
+					href="/{data.notebook.forkOf.author.username}/{data.notebook.slug}"
+				>
+					{data.notebook.forkOf.title}
+				</a>
+			</span>
+		</div>
+	{/if}
 </div>
 
 {#if tags.length}
@@ -391,7 +406,8 @@
 		margin: 8px 0;
 		padding: 16px 0;
 
-		& .updated_at {
+		& .updated_at,
+		& .fork_of {
 			display: flex;
 			align-items: center;
 			gap: 4px;

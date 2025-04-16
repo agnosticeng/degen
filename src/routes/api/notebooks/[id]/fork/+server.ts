@@ -21,8 +21,8 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 
 		const fork = await notebookRepository.create({
 			authorId: locals.user.id,
-			forkedFrom: parent.id,
-			slug: [parent.slug, Date.now().toString(16).slice(-6), 'forked'].join('--'),
+			forkOfId: parent.id,
+			slug: [parent.slug, Date.now().toString(16).slice(-6), 'fork'].join('--'),
 			title: parent.title,
 			visibility: 'private'
 		});

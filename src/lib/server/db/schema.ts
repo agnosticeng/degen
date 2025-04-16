@@ -39,7 +39,7 @@ export const notebooks = table('notebooks', {
 	visibility: text({ enum: ['private', 'public', 'unlisted'] })
 		.notNull()
 		.default('unlisted'),
-	forkedFrom: int('forked_from').references((): AnySQLiteColumn => notebooks.id, {
+	forkOfId: int('fork_of_id').references((): AnySQLiteColumn => notebooks.id, {
 		onDelete: 'set null'
 	}),
 
@@ -57,7 +57,7 @@ export const notebooksRelations = relations(notebooks, ({ one, many }) => ({
 	blocks: many(blocks),
 	likes: many(likes),
 	tagsToNotebooks: many(tagsToNotebooks),
-	forked: one(notebooks, { fields: [notebooks.forkedFrom], references: [notebooks.id] })
+	forkOf: one(notebooks, { fields: [notebooks.forkOfId], references: [notebooks.id] })
 }));
 
 export const blocks = table(

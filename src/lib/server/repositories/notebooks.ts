@@ -54,7 +54,7 @@ export interface NotebookRepository {
 			blocks: Block[];
 			likes: Like[];
 			tags: Tag[];
-			forked?: (Notebook & { author: User }) | null;
+			forkOf?: (Notebook & { author: User }) | null;
 		}
 	>;
 	update(notebook: Notebook, user: User['id']): Promise<Notebook>;
@@ -192,7 +192,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				slug: data.slug,
 				visibility: data.visibility,
 				authorId: data.authorId,
-				forkedFrom: data.forkedFrom
+				forkOfId: data.forkOfId
 			})
 			.returning(this.columns);
 
@@ -219,7 +219,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				blocks: { orderBy: asc(blocks.position) },
 				likes: true,
 				tagsToNotebooks: { with: { tag: true } },
-				forked: { with: { author: true }, columns: { deletedAt: false } }
+				forkOf: { with: { author: true }, columns: { deletedAt: false } }
 			}
 		});
 
@@ -265,7 +265,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 
 		if (result.rowsAffected > 1) throw new Error('Deleted more than 1 Notebook');
 
-		await this.db.update(notebooks).set({ forkedFrom: null }).where(eq(notebooks.forkedFrom, id));
+		await this.db.update(notebooks).set({ forkOfId: null }).where(eq(notebooks.forkOfId, id));
 	}
 }
 
