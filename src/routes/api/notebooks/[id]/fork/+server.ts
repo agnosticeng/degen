@@ -7,6 +7,7 @@ import {
 	withId,
 	withVisibilities
 } from '$lib/server/repositories/specifications/notebooks';
+import { tagsRepository } from '$lib/server/repositories/tags';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -36,6 +37,11 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 				position: b.position,
 				type: b.type
 			}))
+		);
+
+		await tagsRepository.setTags(
+			fork.id,
+			parent.tags.map((t) => ({ name: t.name }))
 		);
 
 		return json({ notebook: { ...fork, author: locals.user } });
