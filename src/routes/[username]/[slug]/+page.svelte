@@ -165,7 +165,12 @@
 	</div>
 
 	<div class="notebook-actions">
-		<button class="share" onclick={() => shareModal.show()}>
+		<button
+			class="share"
+			aria-label="Open Share modal"
+			title="Open Share modal"
+			onclick={() => shareModal.show()}
+		>
 			<Globe size="16" />Share...
 		</button>
 		<LikeButton
@@ -176,11 +181,10 @@
 			onLike={handleLike}
 		/>
 		{#if data.isEditable}
-			<button class="save" onclick={() => save($state.snapshot(blocks))}>
-				<FloppyDiskBack size="16" />
-			</button>
 			<button
 				class="fork"
+				title="Fork this notebook"
+				aria-label="Fork this notebook"
 				onclick={async () => {
 					const n = await fork(notebook.id);
 					if (n) goto(`/${n.author.username}/${n.slug}`);
@@ -188,7 +192,19 @@
 			>
 				<BranchFork size="16" />
 			</button>
-			<button class="more" onclick={(e) => moreNotebookSelect?.open(e.currentTarget)}>
+			<button
+				title="Save"
+				aria-label="Save"
+				class="save"
+				onclick={() => save($state.snapshot(blocks))}
+			>
+				<FloppyDiskBack size="16" />
+			</button>
+			<button
+				class="more"
+				aria-label="More"
+				onclick={(e) => moreNotebookSelect?.open(e.currentTarget)}
+			>
 				<DotsThree size="16" />
 			</button>
 			<Select bind:this={moreNotebookSelect} placement="bottom-end">
@@ -252,15 +268,13 @@
 		</span>
 	</div>
 	{#if data.notebook.forkOf}
+		{@const fork = data.notebook.forkOf}
 		<div class="fork_of">
 			<BranchFork size="16" />
 			<span>
 				Fork of
-				<a
-					title={data.notebook.forkOf.title}
-					href="/{data.notebook.forkOf.author.username}/{data.notebook.slug}"
-				>
-					{data.notebook.forkOf.title}
+				<a title={fork.title} href="/{fork.author.username}/{fork.slug}">
+					{fork.title}
 				</a>
 			</span>
 		</div>
