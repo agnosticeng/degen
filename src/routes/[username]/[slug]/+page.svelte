@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { deleteNotebook, fork, like, updateBlocks } from '$lib/client/requests/notebooks';
+	import { deleteNotebook, like, updateBlocks } from '$lib/client/requests/notebooks';
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
@@ -22,6 +22,7 @@
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Cell from './Cell.svelte';
+	import ForkModal from './ForkModal.svelte';
 	import LikeButton from './LikeButton.svelte';
 	import RenameModal from './RenameModal.svelte';
 	import SetTagsModal from './SetTagsModal.svelte';
@@ -119,6 +120,7 @@
 	let shareModal: ReturnType<typeof ShareModal>;
 	let renameModal: ReturnType<typeof RenameModal>;
 	let setTagsModal: ReturnType<typeof SetTagsModal>;
+	let forkModal: ReturnType<typeof ForkModal>;
 
 	async function handleDelete() {
 		moreNotebookSelect?.close();
@@ -185,10 +187,7 @@
 				class="fork"
 				title="Fork this notebook"
 				aria-label="Fork this notebook"
-				onclick={async () => {
-					const n = await fork(notebook.id);
-					if (n) goto(`/${n.author.username}/${n.slug}`);
-				}}
+				onclick={() => forkModal.show()}
 			>
 				<BranchFork size="16" />
 			</button>
@@ -255,6 +254,11 @@
 />
 <RenameModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={renameModal} />
 <SetTagsModal {notebook} {tags} onSuccess={(_tags) => (tags = _tags)} bind:this={setTagsModal} />
+<ForkModal
+	{notebook}
+	onSuccess={(n) => ((blocker.prevent = false), goto(`/${n.author.username}/${n.slug}`))}
+	bind:this={forkModal}
+/>
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />

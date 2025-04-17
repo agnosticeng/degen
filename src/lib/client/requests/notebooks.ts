@@ -90,15 +90,27 @@ export async function setTags(notebook: Notebook['id'], tags: NewTag[]) {
 	}
 }
 
-export async function fork(notebook: Notebook['id']) {
-	const response = await fetch(`/api/notebooks/${notebook}/fork`, { method: 'POST' });
+export async function fork(
+	notebook: Notebook['id'],
+	visibility: Notebook['visibility'] = 'private'
+) {
+	const response = await fetch(`/api/notebooks/${notebook}/fork`, {
+		method: 'POST',
+		headers: { 'Content-type': 'application/json' },
+		body: JSON.stringify({ visibility })
+	});
 
 	if (response.ok) {
 		const data: { notebook: Notebook & { author: User } } = await response.json();
 		return {
 			...data.notebook,
 			createdAt: new Date(data.notebook.createdAt),
-			updatedAt: new Date(data.notebook.updatedAt)
+			updatedAt: new Date(data.notebook.updatedAt),
+			author: {
+				...data.notebook.author,
+				createdAt: new Date(data.notebook.author.createdAt),
+				updatedAt: new Date(data.notebook.author.updatedAt)
+			}
 		};
 	}
 }
