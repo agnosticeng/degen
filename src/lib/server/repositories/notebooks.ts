@@ -48,9 +48,15 @@ export interface NotebookRepository {
 		{ username: User['username']; slug: Notebook['slug']; lastModification: Date }[]
 	>;
 	create(data: NewNotebook): Promise<Notebook>;
-	read(
-		...specs: Specification<Notebook>[]
-	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[]; tags: Tag[] }>;
+	read(...specs: Specification<Notebook>[]): Promise<
+		Notebook & {
+			author: User;
+			blocks: Block[];
+			likes: Like[];
+			tags: Tag[];
+			forkOf?: (Notebook & { author: User }) | null;
+		}
+	>;
 	update(notebook: Notebook, user: User['id']): Promise<Notebook>;
 	delete(id: Notebook['id'], user: User['id']): Promise<void>;
 }
@@ -185,7 +191,8 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				title: data.title,
 				slug: data.slug,
 				visibility: data.visibility,
-				authorId: data.authorId
+				authorId: data.authorId,
+				forkOfId: data.forkOfId
 			})
 			.returning(this.columns);
 
@@ -193,9 +200,15 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		return row;
 	}
 
-	async read(
-		...specs: Specification<Notebook>[]
-	): Promise<Notebook & { author: User; blocks: Block[]; likes: Like[]; tags: Tag[] }> {
+	async read(...specs: Specification<Notebook>[]): Promise<
+		Notebook & {
+			author: User;
+			blocks: Block[];
+			likes: Like[];
+			tags: Tag[];
+			forked?: (Notebook & { author: User }) | null;
+		}
+	> {
 		if (!specs.every(isDrizzleSpecification)) throw new TypeError('Invalid specification');
 
 		const row = await this.db.query.notebooks.findFirst({
@@ -205,7 +218,8 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				author: true,
 				blocks: { orderBy: asc(blocks.position) },
 				likes: true,
-				tagsToNotebooks: { with: { tag: true } }
+				tagsToNotebooks: { with: { tag: true } },
+				forkOf: { with: { author: true }, columns: { deletedAt: false } }
 			}
 		});
 
@@ -250,6 +264,8 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			throw new NotDeleted('Notebook not delete for identifier: ' + id);
 
 		if (result.rowsAffected > 1) throw new Error('Deleted more than 1 Notebook');
+
+		await this.db.update(notebooks).set({ forkOfId: null }).where(eq(notebooks.forkOfId, id));
 	}
 }
 

@@ -5,6 +5,7 @@
 	import { confirm } from '$lib/cmpnt/Confirmation.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import Select from '$lib/cmpnt/Select.svelte';
+	import BranchFork from '$lib/cmpnt/svg/branch-fork.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
@@ -15,12 +16,13 @@
 	import Visibility from '$lib/cmpnt/Visibility.svelte';
 	import { PreventNavigation } from '$lib/navigation.svelte';
 	import type { ExecutionWithResultURL } from '$lib/server/proxy';
-	import type { EditionBlock } from '$lib/server/repositories/blocks';
+	import type { Block, EditionBlock } from '$lib/server/repositories/blocks';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { Tag as NotebookTag } from '$lib/server/repositories/tags';
 	import type { PageProps } from './$types';
 	import AddBlock from './AddBlock.svelte';
 	import Cell from './Cell.svelte';
+	import ForkModal from './ForkModal.svelte';
 	import LikeButton from './LikeButton.svelte';
 	import RenameModal from './RenameModal.svelte';
 	import SetTagsModal from './SetTagsModal.svelte';
@@ -31,13 +33,13 @@
 
 	let moreNotebookSelect = $state<ReturnType<typeof Select>>();
 
-	let notebook = $state.raw(selectNotebook(data.notebook));
+	let notebook = $derived(selectNotebook(data.notebook));
 	function selectNotebook(n: PageProps['data']['notebook']): Notebook {
 		const { author, blocks, likes, tags, ...notebook } = n;
 		return notebook;
 	}
 
-	let likes = $state.raw(data.notebook.likes);
+	let likes = $derived(data.notebook.likes);
 	let likeCount = $derived(likes.reduce((a, k) => a + k.count, 0));
 	let userLike = $derived(likes.find((l) => l.userId === data.user?.id));
 	async function handleLike(count: number) {
@@ -49,11 +51,14 @@
 		}
 	}
 
-	let tags = $state.raw(data.notebook.tags);
+	let tags = $derived(data.notebook.tags);
 
 	let blocks = $state<(EditionBlock & { executions?: ExecutionWithResultURL[] })[]>(
 		data.notebook.blocks.slice()
 	);
+	$effect(() => {
+		blocks = data.notebook.blocks.slice();
+	});
 
 	const lastUpdate = $derived.by(() => {
 		return blocks.reduce(
@@ -81,7 +86,6 @@
 		const updated = await updateBlocks(data.notebook.id, positionned);
 		if (updated) {
 			blocker.prevent = false;
-			data.notebook.blocks = updated;
 			blocks.forEach((block, i) => {
 				const next = updated[i];
 				block.id = next.id;
@@ -92,6 +96,8 @@
 				block.pinned = next.pinned;
 				block.metadata = next.metadata;
 			});
+
+			data.notebook.blocks = $state.snapshot(blocks) as Block[];
 		}
 	}
 
@@ -114,6 +120,7 @@
 	let shareModal: ReturnType<typeof ShareModal>;
 	let renameModal: ReturnType<typeof RenameModal>;
 	let setTagsModal: ReturnType<typeof SetTagsModal>;
+	let forkModal: ReturnType<typeof ForkModal>;
 
 	async function handleDelete() {
 		moreNotebookSelect?.close();
@@ -160,7 +167,12 @@
 	</div>
 
 	<div class="notebook-actions">
-		<button class="share" onclick={() => shareModal.show()}>
+		<button
+			class="share"
+			aria-label="Open Share modal"
+			title="Open Share modal"
+			onclick={() => shareModal.show()}
+		>
 			<Globe size="16" />Share...
 		</button>
 		<LikeButton
@@ -171,10 +183,27 @@
 			onLike={handleLike}
 		/>
 		{#if data.isEditable}
-			<button class="save" onclick={() => save($state.snapshot(blocks))}>
+			<button
+				class="fork"
+				title="Fork this notebook"
+				aria-label="Fork this notebook"
+				onclick={() => forkModal.show()}
+			>
+				<BranchFork size="16" />
+			</button>
+			<button
+				title="Save"
+				aria-label="Save"
+				class="save"
+				onclick={() => save($state.snapshot(blocks))}
+			>
 				<FloppyDiskBack size="16" />
 			</button>
-			<button class="more" onclick={(e) => moreNotebookSelect?.open(e.currentTarget)}>
+			<button
+				class="more"
+				aria-label="More"
+				onclick={(e) => moreNotebookSelect?.open(e.currentTarget)}
+			>
 				<DotsThree size="16" />
 			</button>
 			<Select bind:this={moreNotebookSelect} placement="bottom-end">
@@ -225,6 +254,11 @@
 />
 <RenameModal {notebook} onSuccess={(n) => (notebook = n)} bind:this={renameModal} />
 <SetTagsModal {notebook} {tags} onSuccess={(_tags) => (tags = _tags)} bind:this={setTagsModal} />
+<ForkModal
+	{notebook}
+	onSuccess={(n) => ((blocker.prevent = false), goto(`/${n.author.username}/${n.slug}`))}
+	bind:this={forkModal}
+/>
 
 <div class="notebook-info">
 	<Visibility visibility={notebook.visibility} />
@@ -232,10 +266,23 @@
 		By <a href="/{data.notebook.author.username}">@{data.notebook.author.username}</a>
 	</div>
 	<div class="updated_at">
-		<PencilSimpleLine size="16" /><span title="Edited {notebook.updatedAt.toString()}">
+		<PencilSimpleLine size="16" />
+		<span title="Edited {notebook.updatedAt.toString()}">
 			Edited {lastUpdate.toDateString()}
 		</span>
 	</div>
+	{#if data.notebook.forkOf}
+		{@const fork = data.notebook.forkOf}
+		<div class="fork_of">
+			<BranchFork size="16" />
+			<span>
+				Fork of
+				<a title={fork.title} href="/{fork.author.username}/{fork.slug}">
+					{fork.title}
+				</a>
+			</span>
+		</div>
+	{/if}
 </div>
 
 {#if tags.length}
@@ -377,7 +424,8 @@
 		margin: 8px 0;
 		padding: 16px 0;
 
-		& .updated_at {
+		& .updated_at,
+		& .fork_of {
 			display: flex;
 			align-items: center;
 			gap: 4px;

@@ -7,7 +7,8 @@ import {
 	primaryKey,
 	sqliteTable as table,
 	text,
-	unique
+	unique,
+	type AnySQLiteColumn
 } from 'drizzle-orm/sqlite-core';
 
 export const users = table(
@@ -38,6 +39,9 @@ export const notebooks = table('notebooks', {
 	visibility: text({ enum: ['private', 'public', 'unlisted'] })
 		.notNull()
 		.default('unlisted'),
+	forkOfId: int('fork_of_id').references((): AnySQLiteColumn => notebooks.id, {
+		onDelete: 'set null'
+	}),
 
 	createdAt: int('created_at', { mode: 'timestamp' })
 		.notNull()
@@ -52,7 +56,8 @@ export const notebooksRelations = relations(notebooks, ({ one, many }) => ({
 	author: one(users, { fields: [notebooks.authorId], references: [users.id] }),
 	blocks: many(blocks),
 	likes: many(likes),
-	tagsToNotebooks: many(tagsToNotebooks)
+	tagsToNotebooks: many(tagsToNotebooks),
+	forkOf: one(notebooks, { fields: [notebooks.forkOfId], references: [notebooks.id] })
 }));
 
 export const blocks = table(

@@ -87,7 +87,8 @@ export const actions = {
 				title: title,
 				slug: _.kebabCase(title),
 				authorId: locals.user.id,
-				visibility: 'private'
+				visibility: 'private',
+				forkOfId: null
 			});
 		} catch (e) {
 			if (e instanceof Error && 'code' in e && e.code === 'SQLITE_CONSTRAINT') {

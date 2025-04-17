@@ -5,6 +5,7 @@
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
 	import type { Notebook } from '$lib/server/repositories/notebooks';
 	import type { User } from '$lib/server/repositories/users';
+	import _ from 'lodash';
 
 	interface Props {
 		notebook: Notebook & { author: User };
@@ -54,6 +55,16 @@
 	function handleKeypress(e: KeyboardEvent) {
 		if (!/[a-z0-9-]/.test(e.key)) e.preventDefault();
 	}
+
+	function handlePaste(e: ClipboardEvent & { currentTarget: EventTarget & HTMLInputElement }) {
+		const text = e.clipboardData?.getData('text');
+		if (!text) return;
+		e.preventDefault();
+		const input = e.currentTarget;
+		input.value += _.kebabCase(text);
+		input.focus();
+		input.scrollTo({ left: input.scrollWidth });
+	}
 </script>
 
 {#if open}
@@ -71,6 +82,7 @@
 					required
 					min="3"
 					onkeypress={handleKeypress}
+					onpaste={handlePaste}
 				/>
 				<button
 					type="button"
