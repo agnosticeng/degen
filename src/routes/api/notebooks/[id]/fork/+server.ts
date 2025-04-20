@@ -1,6 +1,6 @@
 import { blockRepository } from '$lib/server/repositories/blocks';
 import { NotFound } from '$lib/server/repositories/errors';
-import { notebookRepository } from '$lib/server/repositories/notebooks';
+import { notebookRepository, type Notebook } from '$lib/server/repositories/notebooks';
 import { or } from '$lib/server/repositories/specifications/logical';
 import {
 	withAuthor,
@@ -11,8 +11,12 @@ import { tagsRepository } from '$lib/server/repositories/tags';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ locals, params }) => {
+export const POST: RequestHandler = async ({ locals, params, request }) => {
 	if (!locals.user) error(401);
+
+	const body: { visibility: Notebook['visibility'] } = await request.json();
+	if (!['private', 'public', 'unlisted'].includes(body.visibility))
+		error(400, 'Invalid request body');
 
 	try {
 		const parent = await notebookRepository.read(
@@ -25,7 +29,7 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 			forkOfId: parent.id,
 			slug: [parent.slug, Date.now().toString(16).slice(-6), 'fork'].join('--'),
 			title: parent.title,
-			visibility: 'private'
+			visibility: body.visibility
 		});
 
 		await blockRepository.batchCreate(
