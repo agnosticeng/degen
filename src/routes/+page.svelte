@@ -5,6 +5,7 @@
 	import OrderBy, { parseBy, parseDir } from '$lib/cmpnt/OrderBy.svelte';
 	import Pagination from '$lib/cmpnt/Pagination.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
+	import BranchFork from '$lib/cmpnt/svg/branch-fork.svelte';
 	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Tag from '$lib/cmpnt/Tag.svelte';
 	import type { PageProps } from './$types';
@@ -78,7 +79,12 @@
 					<ProfilePicture user={item.author} size={32} />
 					<div class="item-info">
 						<a href="/{item.author.username}/{item.slug}">
-							<h1>{item.title}</h1>
+							<h1>
+								{item.title}
+								{#if item.forkOfId}
+									<BranchFork size="14" fill="hsl(0, 0%, 55%)" />
+								{/if}
+							</h1>
 						</a>
 						<div class="author-info">
 							<h2><a href="/{item.author.username}">@{item.author.username}</a></h2>
@@ -193,6 +199,9 @@
 	}
 
 	.item-info h1 {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 		font-size: 16px;
 		margin: 0 0 7px;
 		font-weight: 500;
