@@ -26,7 +26,10 @@ export const load = (async ({ params, locals, url }) => {
 			await secretRepository.list(notebook.authorId),
 			locals.user?.id ?? 'public',
 			url.hostname
-		);
+		).catch((e) => {
+			console.error(e);
+			return notebook.blocks;
+		});
 
 		return {
 			notebook: { ...notebook, blocks },
@@ -35,7 +38,7 @@ export const load = (async ({ params, locals, url }) => {
 	} catch (e) {
 		if (e instanceof NotFound) error(404, { message: `Notebook not found: ${params.slug}` });
 
-		console.error('PageLoad:', e);
+		console.error(e);
 		throw error(500, { message: e instanceof Error ? e.message : 'Something went wrong' });
 	}
 }) satisfies PageServerLoad;
