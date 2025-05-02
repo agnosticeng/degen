@@ -182,7 +182,7 @@
 			{userLike}
 			onLike={handleLike}
 		/>
-		{#if data.isEditable}
+		{#if data.authenticated}
 			<button
 				class="fork"
 				title="Fork this notebook"
@@ -191,6 +191,8 @@
 			>
 				<BranchFork size="16" />
 			</button>
+		{/if}
+		{#if data.isEditable}
 			<button
 				title="Save"
 				aria-label="Save"
