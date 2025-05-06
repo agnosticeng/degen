@@ -167,7 +167,7 @@
 							<Table data={result.data} columns={result.meta} />
 						{/if}
 
-						{#if block.metadata?.type === 'candle' || block.metadata?.type === 'line' || block.metadata?.type === 'bar' || block.metadata?.type === 'h-bar'}
+						{#if block.metadata?.type && block.metadata.type !== 'table'}
 							<div style="height: 350px">
 								<Chart data={result.data} settings={block.metadata} />
 							</div>
