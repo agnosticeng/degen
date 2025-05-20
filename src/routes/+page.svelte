@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { like } from '$lib/client/requests/notebooks';
 	import OrderBy, { parseBy, parseDir } from '$lib/cmpnt/OrderBy.svelte';
 	import Pagination from '$lib/cmpnt/Pagination.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
 	import BranchFork from '$lib/cmpnt/svg/branch-fork.svelte';
-	import Heart from '$lib/cmpnt/svg/heart.svelte';
 	import Tag from '$lib/cmpnt/Tag.svelte';
 	import type { PageProps } from './$types';
 	import { getTagHref, parse } from './search.utils';
@@ -20,20 +18,6 @@
 
 	const orderBy = $derived(parseBy(page.url.searchParams.get('by')));
 	const orderDir = $derived(parseDir(page.url.searchParams.get('dir')));
-
-	async function handleLike(notebook: (typeof notebooks)[number], count: number) {
-		const index = notebooks.indexOf(notebook);
-		if (index === -1) return;
-		const l = await like(notebook.id, count);
-		if (!l) return;
-
-		const toAdd = l.count - notebook.userLike;
-		notebooks = notebooks.with(index, {
-			...notebook,
-			likes: notebook.likes + toAdd,
-			userLike: l.count
-		});
-	}
 
 	const selectedTags = $derived(
 		parse(
@@ -99,16 +83,6 @@
 						</div>
 					</div>
 				</div>
-				<button
-					class="likes"
-					aria-label="Like"
-					disabled={!data.authenticated || item.userLike === 10 || item.authorId === data.user?.id}
-					class:full={item.userLike > 0}
-					onclick={() => handleLike(item, item.userLike + 1)}
-				>
-					<span>{item.likes}</span>
-					<Heart size={16} />
-				</button>
 			</li>
 		{/each}
 	</ul>
@@ -116,22 +90,6 @@
 </section>
 
 <style>
-	button {
-		font-weight: 500;
-		border: none;
-		padding: 8px 16px;
-		color: hsl(0, 0%, 80%);
-		border-radius: 5px;
-		background: hsl(0, 0%, 5%);
-		transition: all 0.2s ease;
-	}
-
-	button:not(:disabled):hover {
-		cursor: pointer;
-		background: hsl(0, 0%, 8%);
-		color: hsl(0, 0%, 90%);
-	}
-
 	.filters {
 		max-width: 1024px;
 		margin: 0 auto;
@@ -243,25 +201,6 @@
 	@media screen and (max-width: 768px) {
 		.author-info > div {
 			display: none;
-		}
-	}
-
-	.likes {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-
-		& > :global(svg) {
-			transition: scale 0.2s ease;
-		}
-
-		&.full > :global(svg) {
-			fill: currentColor;
-			color: hsl(0deg 61% 54%);
-		}
-
-		&:not(:disabled):hover > :global(svg) {
-			scale: 1.1;
 		}
 	}
 </style>

@@ -1,17 +1,18 @@
 <script lang="ts" module>
-	const ORDER_BY = ['likes', 'title', 'createdAt'] as const;
+	const ORDER_BY = ['trends', 'likes', 'title', 'createdAt'] as const;
 
 	const ORDER_BY_LABEL_MAP = {
+		trends: 'Trends',
 		likes: 'Likes',
 		title: 'Title',
 		createdAt: 'Creation date'
 	} as const;
 
-	export function parseBy(value: string | null): NonNullable<Props['by']> {
-		if (!value) return 'likes';
+	export function parseBy(value: string | null): Required<Props>['by'] {
+		if (!value) return 'trends';
 
 		// @ts-expect-error we are checking value here
-		return ORDER_BY.includes(value) ? value : 'likes';
+		return ORDER_BY.includes(value) ? value : 'trends';
 	}
 
 	export function parseDir(value: string | null): 'asc' | 'desc' {
