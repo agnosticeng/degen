@@ -29,7 +29,7 @@ interface NotebookListSpecs {
 	visibilities?: Notebook['visibility'][];
 	tags?: Tag['name'][];
 	search?: string;
-	sorting?: { by: 'likes' | 'title' | 'createdAt'; direction: 'asc' | 'desc' };
+	sorting?: { by: 'likes' | 'title' | 'createdAt' | 'trends'; direction: 'asc' | 'desc' };
 }
 
 interface Pagination {
@@ -119,6 +119,57 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		if (specs.search)
 			conditions.push(like(sql`UPPER(${notebooks.title})`, `%${specs.search.toUpperCase()}%`));
 
+		const sorting: Required<NonNullable<NotebookListSpecs['sorting']>> = {
+			by: 'likes',
+			direction: 'desc',
+			...specs.sorting
+		};
+		if (sorting.by === 'trends') {
+			const rows = await this.db
+				.with(notebook_likes, user_like, notebook_tags)
+				.select({
+					...this.columns,
+					likes: sql<number>`COALESCE(${notebook_likes.likes}, 0)`.as('likes'),
+					author: {
+						id: users.id,
+						username: users.username,
+						externalId: users.externalId,
+						createdAt: users.createdAt,
+						updatedAt: users.updatedAt
+					},
+					tags: sql`COALESCE(${notebook_tags.tags}, JSON_ARRAY())`
+						.mapWith({
+							mapFromDriverValue(value) {
+								return JSON.parse(value) as string[];
+							}
+						})
+						.as('tags'),
+					userLike: sql<number>`COALESCE(${user_like.count}, 0)`.as('current_user_likes'),
+					totalPages:
+						sql<number>`CAST(CEIL(COUNT(*) OVER () / ${Number(perPage).toFixed(1)}) AS INT)`.as(
+							'total_pages'
+						)
+				})
+				.from(notebooks)
+				.leftJoin(notebook_likes, eq(notebook_likes.notebookId, notebooks.id))
+				.innerJoin(users, eq(users.id, notebooks.authorId))
+				.leftJoin(user_like, eq(user_like.notebookId, notebooks.id))
+				.leftJoin(notebook_tags, eq(notebook_tags.notebookId, notebooks.id))
+				.where(and(...conditions))
+				.orderBy(getDrizzleDirection(sorting.direction)(notebooks.createdAt))
+				.limit(perPage)
+				.offset((current - 1) * perPage);
+
+			if (!rows.length) return { notebooks: [], pagination: { current: 1, total: 0 } };
+
+			const [{ totalPages }] = rows;
+
+			return {
+				notebooks: rows.map(({ totalPages, ...notebook }) => notebook),
+				pagination: { current, total: totalPages }
+			};
+		}
+
 		const rows = await this.db
 			.with(notebook_likes, user_like, notebook_tags)
 			.select({
@@ -151,9 +202,9 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			.leftJoin(notebook_tags, eq(notebook_tags.notebookId, notebooks.id))
 			.where(and(...conditions))
 			.orderBy((aliases) => {
-				const dir = getDrizzleDirection(specs.sorting?.direction ?? 'desc');
-				const by = specs.sorting?.by ?? 'likes';
-				return [dir(aliases[by]), desc(aliases.createdAt)];
+				const dir = getDrizzleDirection(sorting.direction);
+				if (sorting.by === 'trends') return dir(aliases.createdAt); // should not happens
+				return [dir(aliases[sorting.by]), desc(aliases.createdAt)];
 			})
 			.limit(perPage)
 			.offset((current - 1) * perPage);
