@@ -165,3 +165,22 @@ export const secrets = table(
 export const secretsRelations = relations(secrets, ({ one }) => ({
 	owner: one(users, { fields: [secrets.ownerId], references: [users.id] })
 }));
+
+export const views = table(
+	'views',
+	{
+		notebookId: int('notebook_id')
+			.notNull()
+			.references(() => notebooks.id, { onDelete: 'cascade' }),
+		clientId: int('client_id').notNull(),
+		hour: int().notNull(),
+		createdAt: int('created_at', { mode: 'timestamp' })
+			.notNull()
+			.default(sql`(unixepoch())`)
+	},
+	(t) => [primaryKey({ columns: [t.notebookId, t.clientId, t.hour] })]
+);
+
+export const viewsRelations = relations(views, ({ one }) => ({
+	notebook: one(notebooks, { fields: [views.notebookId], references: [notebooks.id] })
+}));

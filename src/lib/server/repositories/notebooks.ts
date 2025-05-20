@@ -2,6 +2,7 @@ import { LibsqlError } from '@libsql/client';
 import {
 	and,
 	asc,
+	count,
 	desc,
 	eq,
 	exists,
@@ -9,10 +10,11 @@ import {
 	inArray,
 	isNull,
 	like,
+	type SQL,
 	sql
 } from 'drizzle-orm';
 import { db, type DrizzleDatabase } from '../db';
-import { blocks, likes, notebooks, tags, tagsToNotebooks, users } from '../db/schema';
+import { blocks, likes, notebooks, tags, tagsToNotebooks, users, views } from '../db/schema';
 import type { Block } from './blocks';
 import { NotCreated, NotDeleted, NotFound, NotUpdated } from './errors';
 import type { Like } from './likes';
@@ -37,8 +39,20 @@ interface Pagination {
 	perPage?: number;
 }
 
+interface DailyViews {
+	date: string;
+	views: number;
+}
+
 export interface NotebookPage {
-	notebooks: (Notebook & { likes: number; author: User; userLike: number; tags: Tag['name'][] })[];
+	notebooks: (Notebook & {
+		likes: number;
+		author: User;
+		userLike: number;
+		tags: Tag['name'][];
+		views: number;
+		dailyViews: DailyViews[];
+	})[];
 	pagination: { current: number; total: number };
 }
 
@@ -69,112 +83,138 @@ class DrizzleNotebookRepository implements NotebookRepository {
 		return columns;
 	}
 
-	async list(specs: NotebookListSpecs, { current = 1, perPage = 15 }: Pagination = {}) {
-		const notebook_likes = this.db.$with('notebook_likes').as(
-			this.db
+	async list(
+		specs: NotebookListSpecs,
+		{ current = 1, perPage = 15 }: Pagination = {}
+	): Promise<NotebookPage> {
+		// Create CTE for aggregating likes per notebook
+		const notebookLikes = db.$with('notebook_likes').as(
+			db
 				.select({
 					notebookId: likes.notebookId,
-					likes: sql<number>`SUM(${likes.count})`.as('likes')
+					totalLikes: sql<number>`COALESCE(SUM(${likes.count}), 0)`.as('total_likes')
 				})
 				.from(likes)
 				.groupBy(likes.notebookId)
 		);
 
-		const user_like = this.db.$with('user_like').as(
-			this.db
-				.select(getTableColumns(likes))
+		// Create CTE for current user's likes
+		const userLikes = db.$with('user_likes').as(
+			db
+				.select({
+					notebookId: likes.notebookId,
+					userLike: likes.count
+				})
 				.from(likes)
-				.where(
-					typeof specs.currentUserId === 'undefined'
-						? isNull(likes.userId)
-						: eq(likes.userId, specs.currentUserId)
-				)
+				.where(specs.currentUserId ? eq(likes.userId, specs.currentUserId) : sql`FALSE`)
 		);
 
-		const notebook_tags = this.db.$with('notebook_tags').as(
-			this.db
+		// Create CTE for tags per notebook
+		const notebookTags = db.$with('notebook_tags').as(
+			db
 				.select({
 					notebookId: tagsToNotebooks.notebookId,
-					tags: sql<string[]>`JSON_GROUP_ARRAY(${tags.name})`.as('tags')
+					tagNames: sql<string>`JSON_GROUP_ARRAY(${tags.name})`.as('tag_names')
 				})
 				.from(tagsToNotebooks)
 				.leftJoin(tags, eq(tags.id, tagsToNotebooks.tagId))
 				.groupBy(tagsToNotebooks.notebookId)
 		);
 
-		const conditions: Parameters<typeof and> = [isNull(notebooks.deletedAt)];
-		if (typeof specs.authorId !== 'undefined')
+		// Create CTE for total views
+		const totalViews = db.$with('total_views').as(
+			db
+				.select({
+					notebookId: views.notebookId,
+					total: count().as('total_views')
+				})
+				.from(views)
+				.groupBy(views.notebookId)
+		);
+
+		// Create CTE for daily views over last 7 days
+		const dailyViews = db.$with('daily_views').as(
+			db
+				.select({
+					notebookId: views.notebookId,
+					date: sql<string>`date(${views.createdAt}, 'unixepoch')`.as('date'),
+					viewCount: count().as('view_count')
+				})
+				.from(views)
+				.where(sql`${views.createdAt} >= unixepoch() - 7 * 24 * 60 * 60`)
+				.groupBy(views.notebookId, sql`date(${views.createdAt}, 'unixepoch')`)
+		);
+
+		// Create date series for last 7 days
+		const dateRange = db.$with('date_range').as(
+			db
+				.select({
+					date: sql<string>`date(unixepoch() - value * 24 * 60 * 60, 'unixepoch')`.as('date')
+				})
+				.from(sql`json_each('[0,1,2,3,4,5,6]')`)
+		);
+
+		// Build WHERE conditions
+		const conditions: SQL[] = [isNull(notebooks.deletedAt)];
+
+		if (specs.authorId) {
 			conditions.push(eq(notebooks.authorId, specs.authorId));
-		if (specs.visibilities?.length)
+		}
+
+		if (specs.visibilities?.length) {
 			conditions.push(inArray(notebooks.visibility, specs.visibilities));
-		if (specs.tags?.length)
+		}
+
+		if (specs.search) {
+			conditions.push(like(sql`UPPER(${notebooks.title})`, `%${specs.search.toUpperCase()}%`));
+		}
+
+		if (specs.tags?.length) {
 			conditions.push(
 				exists(
-					this.db
-						.select({ a: sql`1` })
-						.from(sql`json_each(${notebook_tags.tags})`)
+					db
+						.select({ value: sql`1` })
+						.from(sql`json_each(${notebookTags.tagNames})`)
 						.where(inArray(sql`value`, specs.tags))
 				)
 			);
-		if (specs.search)
-			conditions.push(like(sql`UPPER(${notebooks.title})`, `%${specs.search.toUpperCase()}%`));
-
-		const sorting: Required<NonNullable<NotebookListSpecs['sorting']>> = {
-			by: 'likes',
-			direction: 'desc',
-			...specs.sorting
-		};
-		if (sorting.by === 'trends') {
-			const rows = await this.db
-				.with(notebook_likes, user_like, notebook_tags)
-				.select({
-					...this.columns,
-					likes: sql<number>`COALESCE(${notebook_likes.likes}, 0)`.as('likes'),
-					author: {
-						id: users.id,
-						username: users.username,
-						externalId: users.externalId,
-						createdAt: users.createdAt,
-						updatedAt: users.updatedAt
-					},
-					tags: sql`COALESCE(${notebook_tags.tags}, JSON_ARRAY())`
-						.mapWith({
-							mapFromDriverValue(value) {
-								return JSON.parse(value) as string[];
-							}
-						})
-						.as('tags'),
-					userLike: sql<number>`COALESCE(${user_like.count}, 0)`.as('current_user_likes'),
-					totalPages:
-						sql<number>`CAST(CEIL(COUNT(*) OVER () / ${Number(perPage).toFixed(1)}) AS INT)`.as(
-							'total_pages'
-						)
-				})
-				.from(notebooks)
-				.leftJoin(notebook_likes, eq(notebook_likes.notebookId, notebooks.id))
-				.innerJoin(users, eq(users.id, notebooks.authorId))
-				.leftJoin(user_like, eq(user_like.notebookId, notebooks.id))
-				.leftJoin(notebook_tags, eq(notebook_tags.notebookId, notebooks.id))
-				.where(and(...conditions))
-				.orderBy(getDrizzleDirection(sorting.direction)(notebooks.createdAt))
-				.limit(perPage)
-				.offset((current - 1) * perPage);
-
-			if (!rows.length) return { notebooks: [], pagination: { current: 1, total: 0 } };
-
-			const [{ totalPages }] = rows;
-
-			return {
-				notebooks: rows.map(({ totalPages, ...notebook }) => notebook),
-				pagination: { current, total: totalPages }
-			};
 		}
 
-		const rows = await this.db
-			.with(notebook_likes, user_like, notebook_tags)
+		// Build ORDER BY clause
+		const sorting = {
+			by: specs.sorting?.by ?? 'createdAt',
+			direction: specs.sorting?.direction ?? 'desc'
+		} as const;
+
+		const orderBy = (): SQL[] => {
+			const dir = sorting.direction === 'asc' ? asc : desc;
+
+			switch (sorting.by) {
+				case 'likes':
+					return [dir(sql`COALESCE(${notebookLikes.totalLikes}, 0)`), desc(notebooks.createdAt)];
+				case 'title':
+					return [dir(notebooks.title), desc(notebooks.createdAt)];
+				case 'createdAt':
+				case 'trends':
+					return [dir(notebooks.createdAt)];
+			}
+		};
+
+		// Execute main query with CTEs
+		const rows = await db
+			.with(notebookLikes, userLikes, notebookTags, totalViews, dailyViews, dateRange)
 			.select({
-				...this.columns,
-				likes: sql<number>`COALESCE(${notebook_likes.likes}, 0)`.as('likes'),
+				// Notebook fields
+				id: notebooks.id,
+				authorId: notebooks.authorId,
+				title: notebooks.title,
+				slug: notebooks.slug,
+				visibility: notebooks.visibility,
+				forkOfId: notebooks.forkOfId,
+				createdAt: notebooks.createdAt,
+				updatedAt: notebooks.updatedAt,
+
+				// Author fields
 				author: {
 					id: users.id,
 					username: users.username,
@@ -182,40 +222,61 @@ class DrizzleNotebookRepository implements NotebookRepository {
 					createdAt: users.createdAt,
 					updatedAt: users.updatedAt
 				},
-				tags: sql`COALESCE(${notebook_tags.tags}, JSON_ARRAY())`
-					.mapWith({
-						mapFromDriverValue(value) {
-							return JSON.parse(value) as string[];
-						}
-					})
-					.as('tags'),
-				userLike: sql<number>`COALESCE(${user_like.count}, 0)`.as('current_user_likes'),
-				totalPages:
-					sql<number>`CAST(CEIL(COUNT(*) OVER () / ${Number(perPage).toFixed(1)}) AS INT)`.as(
-						'total_pages'
-					)
+
+				// Aggregated fields
+				likes: sql<number>`COALESCE(${notebookLikes.totalLikes}, 0)`,
+				userLike: sql<number>`COALESCE(${userLikes.userLike}, 0)`,
+				tags: sql<string>`COALESCE(${notebookTags.tagNames}, '[]')`,
+				views: sql<number>`COALESCE(${totalViews.total}, 0)`,
+
+				// Daily views as JSON array
+				dailyViews: sql<string>`(
+        SELECT json_group_array(
+          json_object(
+            'date', date_range.date,
+            'views', COALESCE(daily_views.view_count, 0)
+          )
+        )
+        FROM date_range
+        LEFT JOIN daily_views ON 
+          daily_views.notebook_id = ${notebooks.id}
+          AND daily_views.date = date_range.date
+        ORDER BY date_range.date DESC
+      )`.as('daily_views'),
+
+				// Pagination
+				totalPages: sql<number>`CAST(
+        CEIL(COUNT(*) OVER() / ${perPage}) AS INTEGER
+      )`.as('total_pages')
 			})
 			.from(notebooks)
-			.leftJoin(notebook_likes, eq(notebook_likes.notebookId, notebooks.id))
 			.innerJoin(users, eq(users.id, notebooks.authorId))
-			.leftJoin(user_like, eq(user_like.notebookId, notebooks.id))
-			.leftJoin(notebook_tags, eq(notebook_tags.notebookId, notebooks.id))
+			.leftJoin(notebookLikes, eq(notebookLikes.notebookId, notebooks.id))
+			.leftJoin(userLikes, eq(userLikes.notebookId, notebooks.id))
+			.leftJoin(notebookTags, eq(notebookTags.notebookId, notebooks.id))
+			.leftJoin(totalViews, eq(totalViews.notebookId, notebooks.id))
 			.where(and(...conditions))
-			.orderBy((aliases) => {
-				const dir = getDrizzleDirection(sorting.direction);
-				if (sorting.by === 'trends') return dir(aliases.createdAt); // should not happens
-				return [dir(aliases[sorting.by]), desc(aliases.createdAt)];
-			})
+			.orderBy(...orderBy())
 			.limit(perPage)
 			.offset((current - 1) * perPage);
 
-		if (!rows.length) return { notebooks: [], pagination: { current: 1, total: 0 } };
-
-		const [{ totalPages }] = rows;
+		if (!rows.length) {
+			return {
+				notebooks: [],
+				pagination: { current: 1, total: 0 }
+			};
+		}
 
 		return {
-			notebooks: rows.map(({ totalPages, ...notebook }) => notebook),
-			pagination: { current, total: totalPages }
+			notebooks: rows.map(({ totalPages, ...notebook }) => ({
+				...notebook,
+				tags: JSON.parse(notebook.tags),
+				dailyViews: JSON.parse(notebook.dailyViews)
+			})),
+			pagination: {
+				current,
+				total: rows[0].totalPages
+			}
 		};
 	}
 
@@ -318,10 +379,6 @@ class DrizzleNotebookRepository implements NotebookRepository {
 
 		await this.db.update(notebooks).set({ forkOfId: null }).where(eq(notebooks.forkOfId, id));
 	}
-}
-
-function getDrizzleDirection(direction: 'asc' | 'desc') {
-	return direction === 'asc' ? asc : desc;
 }
 
 export const notebookRepository: NotebookRepository = new DrizzleNotebookRepository(db);

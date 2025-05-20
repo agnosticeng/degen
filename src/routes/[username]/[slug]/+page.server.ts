@@ -8,10 +8,11 @@ import {
 	withSlug,
 	withVisibilities
 } from '$lib/server/repositories/specifications/notebooks';
+import { viewRepository } from '$lib/server/repositories/views';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load = (async ({ params, locals, url }) => {
+export const load = (async ({ params, locals, url, getClientAddress }) => {
 	try {
 		const notebook = await notebookRepository.read(
 			withSlug(params.slug),
@@ -31,6 +32,11 @@ export const load = (async ({ params, locals, url }) => {
 			return notebook.blocks;
 		});
 
+		await viewRepository.addView({
+			clientId: await hash(getClientAddress()),
+			notebookId: notebook.id
+		});
+
 		return {
 			notebook: { ...notebook, blocks },
 			isEditable: locals.user?.id === notebook.author.id
@@ -42,3 +48,14 @@ export const load = (async ({ params, locals, url }) => {
 		throw error(500, { message: e instanceof Error ? e.message : 'Something went wrong' });
 	}
 }) satisfies PageServerLoad;
+
+async function hash(ip: string) {
+	const data = new TextEncoder().encode(ip);
+	const buffer = await crypto.subtle.digest('SHA-256', data);
+
+	const hashHex = Array.from(new Uint8Array(buffer.slice(0, 8)))
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
+
+	return parseInt(hashHex, 16);
+}

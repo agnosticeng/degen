@@ -56,6 +56,7 @@
 		"@libsql/client": "^0.15.4",
 		"arctic": "^3.6.0",
 		"codemirror": "^6.0.1",
+		"dayjs": "^1.11.13",
 		"dompurify": "^3.2.5",
 		"drizzle-orm": "^0.41.0",
 		"jose": "^6.0.10",
