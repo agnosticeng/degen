@@ -69,6 +69,7 @@ export interface NotebookRepository {
 			likes: Like[];
 			tags: Tag[];
 			forkOf?: (Notebook & { author: User }) | null;
+			views: number;
 		}
 	>;
 	update(notebook: Notebook, user: User['id']): Promise<Notebook>;
@@ -402,12 +403,16 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			likes: Like[];
 			tags: Tag[];
 			forked?: (Notebook & { author: User }) | null;
+			views: number;
 		}
 	> {
 		if (!specs.every(isDrizzleSpecification)) throw new TypeError('Invalid specification');
 
 		const row = await this.db.query.notebooks.findFirst({
 			columns: { deletedAt: false },
+			extras: {
+				views: this.db.$count(views, sql`views.notebook_id = ${notebooks.id}`).as('views')
+			},
 			where: and(isNull(notebooks.deletedAt), ...specs.map((s) => s.toQuery())),
 			with: {
 				author: true,

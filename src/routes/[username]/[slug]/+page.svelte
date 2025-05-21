@@ -7,6 +7,7 @@
 	import Select from '$lib/cmpnt/Select.svelte';
 	import BranchFork from '$lib/cmpnt/svg/branch-fork.svelte';
 	import DotsThree from '$lib/cmpnt/svg/dots-three.svelte';
+	import Eye from '$lib/cmpnt/svg/eye.svelte';
 	import FloppyDiskBack from '$lib/cmpnt/svg/floppy-disk-back.svelte';
 	import Globe from '$lib/cmpnt/svg/globe.svelte';
 	import PencilSimpleLine from '$lib/cmpnt/svg/pencil-simple-line.svelte';
@@ -285,6 +286,12 @@
 			</span>
 		</div>
 	{/if}
+	{#if data.notebook.views}
+		<div class="views">
+			<Eye size="16" />
+			<span>{data.notebook.views} view{data.notebook.views > 1 ? 's' : ''}</span>
+		</div>
+	{/if}
 </div>
 
 {#if tags.length}
@@ -426,8 +433,7 @@
 		margin: 8px 0;
 		padding: 16px 0;
 
-		& .updated_at,
-		& .fork_of {
+		& > div {
 			display: flex;
 			align-items: center;
 			gap: 4px;
