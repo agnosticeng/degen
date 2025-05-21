@@ -15,7 +15,7 @@
 			const min = Math.min(...data);
 			const range = max === min ? max || 1 : max - min;
 			const width = 155;
-			const height = 28;
+			const height = 26;
 
 			return data
 				.map((value, index) =>
@@ -40,7 +40,7 @@
 			<stop offset="25%" stop-color="#46954a"></stop>
 			<stop offset="50%" stop-color="#6bc46d"></stop>
 		</linearGradient>
-		<mask id="sparkline-{uid}" x="0" y="0" width="155" height="28">
+		<mask id="sparkline-{uid}" x="0" y="0" width="155" height="26">
 			<polyline {points} fill="transparent" stroke="#8cc665" stroke-width="2" />
 		</mask>
 	</defs>
