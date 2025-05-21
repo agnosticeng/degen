@@ -200,6 +200,89 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			}
 		};
 
+		// Execute main query with CTEs for trends sorting
+		if (sorting.by === 'trends') {
+			const dir = sorting.direction === 'asc' ? asc : desc;
+
+			const rows = await db
+				.with(notebookLikes, userLikes, notebookTags, totalViews, dailyViews, dateRange)
+				.select({
+					// Notebook fields
+					id: notebooks.id,
+					authorId: notebooks.authorId,
+					title: notebooks.title,
+					slug: notebooks.slug,
+					visibility: notebooks.visibility,
+					forkOfId: notebooks.forkOfId,
+					createdAt: notebooks.createdAt,
+					updatedAt: notebooks.updatedAt,
+
+					// Author fields
+					author: {
+						id: users.id,
+						username: users.username,
+						externalId: users.externalId,
+						createdAt: users.createdAt,
+						updatedAt: users.updatedAt
+					},
+
+					// Aggregated fields
+					likes: sql<number>`COALESCE(${notebookLikes.totalLikes}, 0)`,
+					userLike: sql<number>`COALESCE(${userLikes.userLike}, 0)`,
+					tags: sql<string>`COALESCE(${notebookTags.tagNames}, '[]')`,
+					views: sql<number>`COALESCE(${totalViews.total}, 0)`,
+
+					// Daily views as JSON array
+					dailyViews: sql<string>`(
+        SELECT json_group_array(
+          json_object(
+            'date', date_range.date,
+            'views', COALESCE(daily_views.view_count, 0)
+          )
+        )
+        FROM date_range
+        LEFT JOIN daily_views ON 
+          daily_views.notebook_id = ${notebooks.id}
+          AND daily_views.date = date_range.date
+        ORDER BY date_range.date DESC
+      )`.as('daily_views'),
+
+					// Pagination
+					totalPages: sql<number>`CAST(
+        CEIL(COUNT(*) OVER() / ${perPage}) AS INTEGER
+      )`.as('total_pages')
+				})
+				.from(notebooks)
+				.innerJoin(users, eq(users.id, notebooks.authorId))
+				.leftJoin(notebookLikes, eq(notebookLikes.notebookId, notebooks.id))
+				.leftJoin(userLikes, eq(userLikes.notebookId, notebooks.id))
+				.leftJoin(notebookTags, eq(notebookTags.notebookId, notebooks.id))
+				.leftJoin(totalViews, eq(totalViews.notebookId, notebooks.id))
+				.where(and(...conditions))
+				.orderBy(dir(notebooks.createdAt))
+				.limit(perPage)
+				.offset((current - 1) * perPage);
+
+			if (!rows.length) {
+				return {
+					notebooks: [],
+					pagination: { current: 1, total: 0 }
+				};
+			}
+
+			return {
+				notebooks: rows.map(({ totalPages, ...notebook }) => ({
+					...notebook,
+					tags: JSON.parse(notebook.tags),
+					dailyViews: JSON.parse(notebook.dailyViews)
+				})),
+				pagination: {
+					current,
+					total: rows[0].totalPages
+				}
+			};
+		}
+
 		// Execute main query with CTEs
 		const rows = await db
 			.with(notebookLikes, userLikes, notebookTags, totalViews, dailyViews, dateRange)
