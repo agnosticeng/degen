@@ -45,8 +45,8 @@
 		).tags
 	);
 
+	const toDate = (x: { date: string; views: number }) => new Date(x.date);
 	function sortCompare(a: { date: string; views: number }, b: { date: string; views: number }) {
-		const toDate = (x: { date: string; views: number }) => new Date(x.date);
 		return toDate(a).getTime() - toDate(b).getTime();
 	}
 </script>

@@ -33,7 +33,7 @@ export const load = (async ({ params, locals, url, getClientAddress }) => {
 		});
 
 		await viewRepository.addView({
-			clientId: await hash(getClientAddress()),
+			clientIPAddress: getClientAddress(),
 			notebookId: notebook.id
 		});
 
@@ -48,14 +48,3 @@ export const load = (async ({ params, locals, url, getClientAddress }) => {
 		throw error(500, { message: e instanceof Error ? e.message : 'Something went wrong' });
 	}
 }) satisfies PageServerLoad;
-
-async function hash(ip: string) {
-	const data = new TextEncoder().encode(ip);
-	const buffer = await crypto.subtle.digest('SHA-256', data);
-
-	const hashHex = Array.from(new Uint8Array(buffer.slice(0, 8)))
-		.map((b) => b.toString(16).padStart(2, '0'))
-		.join('');
-
-	return parseInt(hashHex, 16);
-}
