@@ -8,10 +8,11 @@ import {
 	withSlug,
 	withVisibilities
 } from '$lib/server/repositories/specifications/notebooks';
+import { viewRepository } from '$lib/server/repositories/views';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load = (async ({ params, locals, url }) => {
+export const load = (async ({ params, locals, url, getClientAddress }) => {
 	try {
 		const notebook = await notebookRepository.read(
 			withSlug(params.slug),
@@ -29,6 +30,11 @@ export const load = (async ({ params, locals, url }) => {
 		).catch((e) => {
 			console.error(e);
 			return notebook.blocks;
+		});
+
+		await viewRepository.addView({
+			clientIPAddress: getClientAddress(),
+			notebookId: notebook.id
 		});
 
 		return {

@@ -4,7 +4,9 @@
 	import OrderBy, { parseBy, parseDir } from '$lib/cmpnt/OrderBy.svelte';
 	import Pagination from '$lib/cmpnt/Pagination.svelte';
 	import ProfilePicture from '$lib/cmpnt/ProfilePicture.svelte';
+	import Sparkline from '$lib/cmpnt/Sparkline.svelte';
 	import BranchFork from '$lib/cmpnt/svg/branch-fork.svelte';
+	import Eye from '$lib/cmpnt/svg/eye.svelte';
 	import Tag from '$lib/cmpnt/Tag.svelte';
 	import type { PageProps } from './$types';
 	import { getTagHref, parse } from './search.utils';
@@ -25,6 +27,11 @@
 			data.trends.map((t) => t.name)
 		).tags
 	);
+
+	const toDate = (x: { date: string; views: number }) => new Date(x.date);
+	function sortCompare(a: { date: string; views: number }, b: { date: string; views: number }) {
+		return toDate(a).getTime() - toDate(b).getTime();
+	}
 </script>
 
 <svelte:head>
@@ -82,6 +89,16 @@
 							</div>
 						</div>
 					</div>
+				</div>
+				<div class="hide-tablet">
+					<Sparkline
+						title="{item.views} view{item.views > 1 ? 's' : ''}"
+						data={item.dailyViews.toSorted(sortCompare).map((v) => v.views)}
+					/>
+				</div>
+				<div class="total-views">
+					<span>{item.views}</span>
+					<Eye size="16" />
 				</div>
 			</li>
 		{/each}
@@ -198,9 +215,23 @@
 		gap: 10px;
 	}
 
+	.total-views {
+		display: none;
+		align-items: center;
+		gap: 5px;
+	}
+
 	@media screen and (max-width: 768px) {
 		.author-info > div {
 			display: none;
+		}
+
+		.hide-tablet {
+			display: none;
+		}
+
+		.total-views {
+			display: flex;
 		}
 	}
 </style>
