@@ -1,4 +1,5 @@
 import { LibsqlError } from '@libsql/client';
+import dayjs from 'dayjs';
 import {
 	and,
 	asc,
@@ -7,6 +8,7 @@ import {
 	eq,
 	exists,
 	getTableColumns,
+	gte,
 	inArray,
 	isNull,
 	like,
@@ -90,7 +92,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 	): Promise<NotebookPage> {
 		// Create CTE for aggregating likes per notebook
 		const notebookLikes = db.$with('notebook_likes').as(
-			db
+			this.db
 				.select({
 					notebookId: likes.notebookId,
 					totalLikes: sql<number>`COALESCE(SUM(${likes.count}), 0)`.as('total_likes')
@@ -130,6 +132,18 @@ class DrizzleNotebookRepository implements NotebookRepository {
 					total: count().as('total_views')
 				})
 				.from(views)
+				.groupBy(views.notebookId)
+		);
+
+		// Create CTE for last 7 days view count
+		const last7DaysViews = db.$with('last_7_days_views').as(
+			db
+				.select({
+					notebookId: views.notebookId,
+					total: count().as('last_7_days_views')
+				})
+				.from(views)
+				.where(gte(views.createdAt, dayjs().startOf('day').subtract(7, 'days').toDate()))
 				.groupBy(views.notebookId)
 		);
 
@@ -196,97 +210,23 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				case 'title':
 					return [dir(notebooks.title), desc(notebooks.createdAt)];
 				case 'createdAt':
-				case 'trends':
 					return [dir(notebooks.createdAt)];
+				case 'trends':
+					return [dir(sql`COALESCE(${last7DaysViews.total}, 0)`), desc(notebooks.createdAt)];
 			}
 		};
 
-		// Execute main query with CTEs for trends sorting
-		if (sorting.by === 'trends') {
-			const dir = sorting.direction === 'asc' ? asc : desc;
-
-			const rows = await db
-				.with(notebookLikes, userLikes, notebookTags, totalViews, dailyViews, dateRange)
-				.select({
-					// Notebook fields
-					id: notebooks.id,
-					authorId: notebooks.authorId,
-					title: notebooks.title,
-					slug: notebooks.slug,
-					visibility: notebooks.visibility,
-					forkOfId: notebooks.forkOfId,
-					createdAt: notebooks.createdAt,
-					updatedAt: notebooks.updatedAt,
-
-					// Author fields
-					author: {
-						id: users.id,
-						username: users.username,
-						externalId: users.externalId,
-						createdAt: users.createdAt,
-						updatedAt: users.updatedAt
-					},
-
-					// Aggregated fields
-					likes: sql<number>`COALESCE(${notebookLikes.totalLikes}, 0)`,
-					userLike: sql<number>`COALESCE(${userLikes.userLike}, 0)`,
-					tags: sql<string>`COALESCE(${notebookTags.tagNames}, '[]')`,
-					views: sql<number>`COALESCE(${totalViews.total}, 0)`,
-
-					// Daily views as JSON array
-					dailyViews: sql<string>`(
-        SELECT json_group_array(
-          json_object(
-            'date', date_range.date,
-            'views', COALESCE(daily_views.view_count, 0)
-          )
-        )
-        FROM date_range
-        LEFT JOIN daily_views ON 
-          daily_views.notebook_id = ${notebooks.id}
-          AND daily_views.date = date_range.date
-        ORDER BY date_range.date DESC
-      )`.as('daily_views'),
-
-					// Pagination
-					totalPages: sql<number>`CAST(
-        CEIL(COUNT(*) OVER() / ${perPage}) AS INTEGER
-      )`.as('total_pages')
-				})
-				.from(notebooks)
-				.innerJoin(users, eq(users.id, notebooks.authorId))
-				.leftJoin(notebookLikes, eq(notebookLikes.notebookId, notebooks.id))
-				.leftJoin(userLikes, eq(userLikes.notebookId, notebooks.id))
-				.leftJoin(notebookTags, eq(notebookTags.notebookId, notebooks.id))
-				.leftJoin(totalViews, eq(totalViews.notebookId, notebooks.id))
-				.where(and(...conditions))
-				.orderBy(dir(notebooks.createdAt))
-				.limit(perPage)
-				.offset((current - 1) * perPage);
-
-			if (!rows.length) {
-				return {
-					notebooks: [],
-					pagination: { current: 1, total: 0 }
-				};
-			}
-
-			return {
-				notebooks: rows.map(({ totalPages, ...notebook }) => ({
-					...notebook,
-					tags: JSON.parse(notebook.tags),
-					dailyViews: JSON.parse(notebook.dailyViews)
-				})),
-				pagination: {
-					current,
-					total: rows[0].totalPages
-				}
-			};
-		}
-
 		// Execute main query with CTEs
 		const rows = await db
-			.with(notebookLikes, userLikes, notebookTags, totalViews, dailyViews, dateRange)
+			.with(
+				notebookLikes,
+				userLikes,
+				notebookTags,
+				totalViews,
+				last7DaysViews,
+				dailyViews,
+				dateRange
+			)
 			.select({
 				// Notebook fields
 				id: notebooks.id,
@@ -312,6 +252,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 				userLike: sql<number>`COALESCE(${userLikes.userLike}, 0)`,
 				tags: sql<string>`COALESCE(${notebookTags.tagNames}, '[]')`,
 				views: sql<number>`COALESCE(${totalViews.total}, 0)`,
+				last7DaysViews: sql<number>`COALESCE(${last7DaysViews.total}, 0)`,
 
 				// Daily views as JSON array
 				dailyViews: sql<string>`(
@@ -339,6 +280,7 @@ class DrizzleNotebookRepository implements NotebookRepository {
 			.leftJoin(userLikes, eq(userLikes.notebookId, notebooks.id))
 			.leftJoin(notebookTags, eq(notebookTags.notebookId, notebooks.id))
 			.leftJoin(totalViews, eq(totalViews.notebookId, notebooks.id))
+			.leftJoin(last7DaysViews, eq(last7DaysViews.notebookId, notebooks.id))
 			.where(and(...conditions))
 			.orderBy(...orderBy())
 			.limit(perPage)
