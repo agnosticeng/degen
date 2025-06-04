@@ -48,11 +48,13 @@ export class AsyncRuntime {
 			'Content-Type': typeof content === 'string' ? 'text/plain' : 'application/json'
 		});
 
+		console.time(`Create Execution ${queryId}`);
 		const response = await fetch(url, {
 			method: 'POST',
 			headers,
 			body: typeof content === 'string' ? content : JSON.stringify(content)
 		});
+		console.timeEnd(`Create Execution ${queryId}`);
 
 		if (!response.ok) {
 			console.error(await response.text());
