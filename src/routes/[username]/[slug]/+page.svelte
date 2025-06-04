@@ -79,26 +79,31 @@
 	}
 
 	const blocker = new PreventNavigation();
-
+	let loading = $state(false);
 	async function save(toUpdate: typeof blocks) {
 		if (areSameBlocks(data.notebook.blocks, toUpdate)) return;
+		if (loading) return;
+		loading = true;
+		try {
+			const positionned = toUpdate.map((b, i) => ({ ...b, position: i }));
+			const updated = await updateBlocks(data.notebook.id, positionned);
+			if (updated) {
+				blocker.prevent = false;
+				blocks.forEach((block, i) => {
+					const next = updated[i];
+					block.id = next.id;
+					block.notebookId = next.notebookId;
+					block.createdAt = next.createdAt;
+					block.updatedAt = next.updatedAt;
+					block.position = next.position;
+					block.pinned = next.pinned;
+					block.metadata = next.metadata;
+				});
 
-		const positionned = toUpdate.map((b, i) => ({ ...b, position: i }));
-		const updated = await updateBlocks(data.notebook.id, positionned);
-		if (updated) {
-			blocker.prevent = false;
-			blocks.forEach((block, i) => {
-				const next = updated[i];
-				block.id = next.id;
-				block.notebookId = next.notebookId;
-				block.createdAt = next.createdAt;
-				block.updatedAt = next.updatedAt;
-				block.position = next.position;
-				block.pinned = next.pinned;
-				block.metadata = next.metadata;
-			});
-
-			data.notebook.blocks = $state.snapshot(blocks) as Block[];
+				data.notebook.blocks = $state.snapshot(blocks) as Block[];
+			}
+		} finally {
+			loading = false;
 		}
 	}
 
