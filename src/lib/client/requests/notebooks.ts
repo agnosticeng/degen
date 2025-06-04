@@ -4,11 +4,20 @@ import type { Notebook } from '$lib/server/repositories/notebooks';
 import type { NewTag, Tag } from '$lib/server/repositories/tags';
 import type { User } from '$lib/server/repositories/users';
 
-export async function updateBlocks(id: Notebook['id'], blocks: EditionBlock[]) {
+type RequestOptions = {
+	signal?: AbortSignal;
+};
+
+export async function updateBlocks(
+	id: Notebook['id'],
+	blocks: EditionBlock[],
+	opts: RequestOptions = {}
+) {
 	const response = await fetch(`/api/notebooks/${id}/blocks`, {
 		method: 'PUT',
 		headers: { 'Content-type': 'application/json' },
-		body: JSON.stringify({ blocks })
+		body: JSON.stringify({ blocks }),
+		signal: opts?.signal
 	});
 
 	if (response.ok) {
