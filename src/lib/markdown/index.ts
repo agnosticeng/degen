@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import { Marked } from 'marked';
+import katex from 'marked-katex-extension';
 import './markdown.css';
 
 export async function renderMarkdown(body: string) {
@@ -19,6 +20,8 @@ export async function renderMarkdown(body: string) {
 			}
 		}
 	});
+
+	marked.use(katex({ throwOnError: false }));
 
 	return DOMPurify.sanitize(await marked.parse(body));
 }
