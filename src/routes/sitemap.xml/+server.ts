@@ -4,7 +4,7 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ url }) => {
 	const links = await notebookRepository.listForSitemap();
 	const urls = links.map((r) => ({
-		loc: new URL(`/${r.username}/${r.slug}`, url.origin).toString(),
+		loc: new URL(`/${r.username}/${encodeURIComponent(r.slug)}`, url.origin).toString(),
 		lastmod: r.lastModification.toISOString(),
 		changefreq: 'weekly',
 		priority: '0.7'
