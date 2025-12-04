@@ -16,8 +16,7 @@ export function setTokensIntoCookies(cookies: Cookies, tokens: OAuth2Tokens) {
 		httpOnly: true,
 		path: '/',
 		secure: import.meta.env.PROD,
-		sameSite: 'lax',
-		expires: tokens.accessTokenExpiresAt()
+		sameSite: 'lax'
 	});
 
 	if (tokens.hasRefreshToken()) {
@@ -25,8 +24,7 @@ export function setTokensIntoCookies(cookies: Cookies, tokens: OAuth2Tokens) {
 			httpOnly: true,
 			path: '/',
 			secure: import.meta.env.PROD,
-			sameSite: 'lax',
-			expires: tokens.accessTokenExpiresAt()
+			sameSite: 'lax'
 		});
 	}
 }
